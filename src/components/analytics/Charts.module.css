@@ -1,0 +1,153 @@
+/* ===== Stat card (número grande) ===== */
+.statCard {
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.statUnit {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+
+/* ===== Donut ===== */
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.donutSvg {
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.donutTotal {
+  font-size: 28px;
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.donutTotalLabel {
+  font-size: 11px;
+  fill: var(--text-faint);
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+}
+
+.legendDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  color: var(--text);
+  flex: 1;
+  /* sem corte de texto */
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.legendValue {
+  color: var(--text-muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ===== Barras horizontais ===== */
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.barRow {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.barHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.barLabel {
+  color: var(--text);
+  font-weight: 500;
+  /* texto completo, pode quebrar em linhas */
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+  flex: 1;
+}
+
+.barValue {
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.barValue strong { color: var(--text); font-weight: 700; }
+
+.barTrack {
+  height: 10px;
+  background: var(--muted);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 4px;
+}
+
+.barRowOutros {
+  border-top: 1px dashed var(--muted);
+  padding-top: 12px;
+  margin-top: 2px;
+}
+.barRowOutros .barLabel { color: var(--text-muted); }

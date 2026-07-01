@@ -1,0 +1,47 @@
+.shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.content {
+  flex: 1;
+  padding: 28px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Backdrop do menu gaveta (só aparece no mobile quando o menu abre) */
+.backdrop {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .content {
+    padding: 16px;
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 40;
+    animation: fade 0.15s ease;
+  }
+
+  @keyframes fade {
+    from { opacity: 0 } to { opacity: 1 }
+  }
+}

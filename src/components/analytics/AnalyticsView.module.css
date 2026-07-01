@@ -1,0 +1,165 @@
+.page {
+  max-width: 1200px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--muted);
+  border-radius: 9px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  transition: border-color 0.15s ease;
+}
+
+.back:hover { border-color: var(--hover-border); }
+
+.headText { flex: 1; min-width: 120px; }
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Controle segmentado de período */
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+}
+
+.segBtn {
+  height: 30px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segBtn:hover { color: var(--text); }
+
+.segActive {
+  background: var(--gradient-cta);
+  color: #fff;
+}
+
+/* Linha de métricas */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Grid de gráficos */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.cardWide { grid-column: span 1; }
+
+.cardTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-bottom: 18px;
+  /* título da pergunta pode quebrar, sem corte */
+  line-height: 1.35;
+}
+
+.cardTitle svg { color: var(--brand-blue); flex-shrink: 0; margin-top: 1px; }
+
+.empty {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 16px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--muted);
+  border-top-color: var(--brand-blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg) } }
+
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .statsRow { grid-template-columns: 1fr 1fr; }
+  .segmented { width: 100%; overflow-x: auto; }
+  .head { gap: 12px; }
+}
+
+.dragHandle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: grab;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.dragHandle:hover { background: var(--surface-2); color: var(--text-muted); }
+.dragHandle:active { cursor: grabbing; }

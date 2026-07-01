@@ -1,0 +1,255 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* Mobile: colunas roláveis horizontalmente (estilo app) */
+@media (max-width: 860px) {
+  .board {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .column {
+    flex: 0 0 80%;
+    max-width: 300px;
+    scroll-snap-align: start;
+  }
+}
+
+.column {
+  background: var(--surface-2);
+  border: 1px solid var(--muted);
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 240px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.columnOver {
+  background: rgba(92, 160, 217, 0.06);
+  border-color: var(--brand-blue);
+}
+
+.columnHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface-2);
+  margin: -14px -14px 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--muted);
+  border-radius: 12px 12px 0 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.columnLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  letter-spacing: -0.01em;
+}
+
+.columnCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+  background: var(--muted);
+  padding: 2px 7px;
+  border-radius: 100px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.draggable {
+  touch-action: none;
+}
+
+.dragging {
+  opacity: 0.35;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: grab;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.cardMeta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.cardTag {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--text-faint);
+  background: var(--muted);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.overlay {
+  transform: rotate(2deg);
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.18));
+  opacity: 0.96;
+  border-radius: 10px;
+}
+
+.overlay .card {
+  cursor: grabbing;
+}
+
+.convBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brand-blue);
+  background: rgba(92, 160, 217, 0.14);
+  padding: 1px 6px;
+  border-radius: 100px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.sortBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sortLabel {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sortSelect {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.sortDirBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.sortDirBtn:hover { border-color: var(--hover-border); }
+.sortDirBtn svg { color: var(--text-muted); }
+
+.cardDate {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 8px;
+}
+
+/* Layout preenchendo a altura: cards rolam, cabeçalho das colunas fixo */
+.fillCol {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.fillCol .sortBar { flex-shrink: 0; }
+.boardScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Mobile (modo fill): cada coluna tem altura fixa, cabeçalho fixo e cards rolando dentro */
+@media (max-width: 860px) {
+  .fillCol .boardScroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+  }
+  .fillCol .board { height: 100%; overflow: visible; }
+  .fillCol .column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .fillCol .columnHeader { position: static; }
+  .fillCol .cards {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}

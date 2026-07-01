@@ -32,9 +32,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# backups de dados (contêm dados reais de leads — nunca versionar)
+/scripts/phone-backup-*.json
+
+# arquivos internos / assistentes
+/.claude
 
 # typescript
 *.tsbuildinfo
