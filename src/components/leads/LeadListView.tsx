@@ -65,10 +65,13 @@ function sortValue(colId: string, l: Lead): number | string {
   return typeof v === 'string' ? v.toLowerCase() : ''
 }
 
-type Props = { leads: Lead[]; size?: 'sm' | 'md' | 'lg'; source: 'meta' | 'planilha' | 'site'; isAdmin?: boolean; fill?: boolean }
+type Props = { leads: Lead[]; allLeads?: Lead[]; size?: 'sm' | 'md' | 'lg'; source: 'meta' | 'planilha' | 'site'; isAdmin?: boolean; fill?: boolean }
 
-export default function LeadListView({ leads, size = 'md', source, isAdmin, fill }: Props) {
+export default function LeadListView({ leads, allLeads, size = 'md', source, isAdmin, fill }: Props) {
   const [selected, setSelected] = useState<Lead | null>(null)
+  // Lookup por id p/ abrir cards anteriores da mesma pessoa (mesmo se filtrados fora da lista).
+  const byId = useMemo(() => new Map((allLeads ?? leads).map(l => [l.id, l])), [allLeads, leads])
+  const openById = (id: string) => { const l = byId.get(id); if (l) setSelected(l) }
   const [page, setPage] = useState(1)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [sort, setSort] = useState<{ col: string; dir: 'asc' | 'desc' } | null>(null)
@@ -288,7 +291,7 @@ export default function LeadListView({ leads, size = 'md', source, isAdmin, fill
       </div>
 
       {totalPages > 1 && <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />}
-      {selected && <LeadModal lead={selected} onClose={() => setSelected(null)} />}
+      {selected && <LeadModal lead={selected} onClose={() => setSelected(null)} onOpenLead={openById} />}
     </div>
   )
 }

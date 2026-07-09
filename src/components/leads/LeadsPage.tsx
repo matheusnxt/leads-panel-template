@@ -8,7 +8,7 @@ import { useView } from '@/contexts/ViewContext'
 import { useSession } from '@/contexts/SessionContext'
 import { getRange, inRange, type DateRangeKey } from '@/lib/dateRange'
 import { scoreLead } from '@/lib/leadScore'
-import { dedupeLeads } from '@/lib/dedupe'
+import { dedupeLeads, CONVERSION_WINDOW_DAYS } from '@/lib/dedupe'
 import { buildExport, download, uploadExport, type ExportFormat } from '@/lib/export'
 import { logActivity } from '@/lib/activity'
 import FilterBar from './FilterBar'
@@ -90,8 +90,9 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source])
 
-  // Agrupa leads iguais (mesma pessoa) numa única entrada
-  const mergedLeads = useMemo(() => dedupeLeads(leads), [leads])
+  // Agrupa leads iguais (mesma pessoa) numa única entrada. Reconversões
+  // separadas por mais que a janela (30d) viram cards distintos (regra HealthGo).
+  const mergedLeads = useMemo(() => dedupeLeads(leads, CONVERSION_WINDOW_DAYS), [leads])
 
   // Lista de formulários distintos (por quantas pessoas converteram por ele)
   const forms = useMemo(() => {
@@ -199,8 +200,8 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
         />
       </div>
       {view === 'list'
-        ? <LeadListView leads={visibleLeads} size={listSize} source={source} isAdmin={isAdmin} fill={fillHeight} />
-        : <LeadKanbanView leads={visibleLeads} onStatusChange={updateLeadStatus} fill={fillHeight} />}
+        ? <LeadListView leads={visibleLeads} allLeads={mergedLeads} size={listSize} source={source} isAdmin={isAdmin} fill={fillHeight} />
+        : <LeadKanbanView leads={visibleLeads} allLeads={mergedLeads} onStatusChange={updateLeadStatus} fill={fillHeight} />}
     </div>
   )
 }

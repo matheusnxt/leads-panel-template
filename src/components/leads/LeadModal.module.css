@@ -266,3 +266,75 @@
   .body { padding: 4px 18px 24px; }
   .utmGrid { grid-template-columns: 1fr; }
 }
+
+.priorNotice {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: rgba(92, 160, 217, 0.08);
+  border: 1px solid var(--muted);
+  border-radius: 12px;
+}
+
+.priorTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-blue);
+  margin-bottom: 10px;
+}
+
+.priorList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.priorItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.priorItem:hover:not(:disabled) {
+  border-color: var(--brand-blue);
+  background: var(--background);
+}
+
+.priorItem:disabled {
+  cursor: default;
+}
+
+.priorItemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.priorDate {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.priorForms {
+  font-size: 12px;
+  color: var(--text-faint);
+  word-break: break-word;
+}
+
+.priorChevron {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}

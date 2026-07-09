@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { X, Mail, Phone, Tag, Calendar, BarChart2, ListChecks, Repeat, Megaphone } from 'lucide-react'
+import { X, Mail, Phone, Tag, Calendar, BarChart2, ListChecks, Repeat, Megaphone, History, ChevronRight } from 'lucide-react'
 import type { Lead } from '@/lib/supabase'
-import type { Submission } from '@/lib/dedupe'
+import type { Submission, PriorCapture } from '@/lib/dedupe'
 import { scoreLead } from '@/lib/leadScore'
 import ScoreGauge from './ScoreGauge'
 import ResponsibleSelect from './ResponsibleSelect'
@@ -16,9 +16,13 @@ const STATUS_LABELS: Record<Lead['status'], string> = {
   perdido: 'Perdido',
 }
 
-type Props = { lead: Lead & { conversions?: number; submissions?: Submission[] }; onClose: () => void }
+type Props = {
+  lead: Lead & { conversions?: number; submissions?: Submission[]; priorCaptures?: PriorCapture[] }
+  onClose: () => void
+  onOpenLead?: (id: string) => void
+}
 
-export default function LeadModal({ lead, onClose }: Props) {
+export default function LeadModal({ lead, onClose, onOpenLead }: Props) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
@@ -38,6 +42,7 @@ export default function LeadModal({ lead, onClose }: Props) {
 
   const submissions = lead.submissions ?? []
   const conversions = lead.conversions ?? 1
+  const priorCaptures = lead.priorCaptures ?? []
 
   return (
     <div className={styles.backdrop} onClick={onClose}>
@@ -181,6 +186,38 @@ export default function LeadModal({ lead, onClose }: Props) {
                 {lead.ad_name && (
                   <div className={styles.field}><div><div className={styles.fieldLabel}>Anúncio</div><div className={styles.fieldValue}>{lead.ad_name}</div></div></div>
                 )}
+              </div>
+            </section>
+          )}
+
+          {priorCaptures.length > 0 && (
+            <section className={styles.priorNotice}>
+              <div className={styles.priorTitle}>
+                <History size={14} />
+                Lead já capturado anteriormente em:
+              </div>
+              <div className={styles.priorList}>
+                {priorCaptures.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={styles.priorItem}
+                    onClick={() => onOpenLead?.(p.id)}
+                    disabled={!onOpenLead}
+                    title="Abrir o card anterior"
+                  >
+                    <span className={styles.priorItemMain}>
+                      <span className={styles.priorDate}>
+                        {new Date(p.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </span>
+                      <span className={styles.priorForms}>
+                        {(p.forms.length ? p.forms.join(', ') : 'Sem formulário')}
+                        {p.conversions > 1 && ` · ${p.conversions} conversões`}
+                      </span>
+                    </span>
+                    <ChevronRight size={15} className={styles.priorChevron} />
+                  </button>
+                ))}
               </div>
             </section>
           )}

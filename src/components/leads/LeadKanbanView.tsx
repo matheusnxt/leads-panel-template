@@ -96,6 +96,7 @@ function KanbanColumn({
 
 type Props = {
   leads: Lead[]
+  allLeads?: Lead[]
   onStatusChange: (id: string, status: Lead['status']) => void
   fill?: boolean
 }
@@ -112,9 +113,11 @@ function kanbanSortValue(field: string, l: Lead): number | string {
   return new Date(l.created_at).getTime()
 }
 
-export default function LeadKanbanView({ leads, onStatusChange, fill }: Props) {
+export default function LeadKanbanView({ leads, allLeads, onStatusChange, fill }: Props) {
   const [activeId, setActiveId]       = useState<string | null>(null)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  // Lookup por id p/ abrir cards anteriores da mesma pessoa (mesmo se filtrados fora).
+  const openById = (id: string) => { const l = (allLeads ?? leads).find(x => x.id === id); if (l) setSelectedLead(l) }
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
@@ -195,7 +198,7 @@ export default function LeadKanbanView({ leads, onStatusChange, fill }: Props) {
       </DndContext>
 
       {selectedLead && (
-        <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} />
+        <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} onOpenLead={openById} />
       )}
     </div>
   )
