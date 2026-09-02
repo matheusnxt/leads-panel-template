@@ -1,0 +1,109 @@
+.page { max-width: 1000px; }
+
+.head { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+.headText { flex: 1; min-width: 120px; }
+.title { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+.subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.loading { display: flex; align-items: center; justify-content: center; min-height: 260px; color: var(--brand-blue); }
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.errorBox {
+  display: flex; align-items: center; gap: 8px; padding: 16px 18px; border-radius: 14px;
+  background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.28);
+  color: #dc2626; font-size: 13.5px; font-weight: 600;
+}
+
+.card {
+  background: var(--surface); border: 1px solid var(--muted);
+  border-radius: 16px; padding: 8px 4px; margin-bottom: 22px; overflow-x: auto;
+}
+
+/* ===== Funil trapezoidal (estilo Meta Ads) ===== */
+.funnelHead {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 700; color: var(--text); padding: 14px 16px 4px;
+}
+.funnelHead svg { color: #6366f1; flex-shrink: 0; }
+.funnel { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 16px; }
+.funStage { display: flex; align-items: stretch; gap: 12px; }
+.funStep {
+  width: 54px; flex-shrink: 0; align-self: center;
+  font-size: 11px; font-weight: 600; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.funSeg {
+  flex: 1; min-height: 56px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 8px 10px; color: #fff;
+}
+.funDark { color: #1e1b4b; }
+.funName { font-size: 11px; font-weight: 600; opacity: 0.82; }
+.funValue { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.funPct { font-size: 12px; font-weight: 600; opacity: 0.85; }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-faint); padding: 14px 18px 12px;
+}
+.thNum { text-align: right; }
+.thStage { min-width: 140px; }
+.table td { padding: 15px 18px; border-top: 1px solid var(--muted); }
+.tdStage {
+  display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: var(--text);
+}
+.tdStage svg { color: var(--brand-blue); flex-shrink: 0; }
+.tdNum { text-align: right; font-variant-numeric: tabular-nums; font-size: 15px; }
+.tdNum strong { font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.paid { color: var(--brand-blue); font-weight: 600; }
+.org { color: var(--text-muted); font-weight: 600; }
+
+.moneyRow td { border-top: 2px solid var(--muted); }
+.moneyRow .tdNum strong { color: #059669; }
+.moneyRow .paid { color: #059669; }
+
+.sectionTitle {
+  display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700;
+  color: var(--text); margin: 4px 0 14px; letter-spacing: -0.01em;
+}
+.sectionTitle svg { color: var(--brand-blue); }
+.sectionNote { font-size: 12px; font-weight: 500; color: var(--text-faint); }
+
+.cardEmpty {
+  padding: 28px; text-align: center; color: var(--text-muted); font-size: 13px;
+  background: var(--surface); border: 1px solid var(--muted); border-radius: 14px;
+}
+
+.crossGrid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px; background: var(--muted); border: 1px solid var(--muted);
+  border-radius: 16px; overflow: hidden; margin-bottom: 18px;
+}
+.kpi { background: var(--surface); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.kpiHero { grid-column: span 2; }
+.kpiLabel { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-faint); }
+.kpiValue { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); line-height: 1; }
+.kpiHero .kpiValue { font-size: 30px; }
+
+.assumptions {
+  display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.5;
+  color: var(--text-muted); background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.22); border-radius: 10px; padding: 11px 13px;
+}
+.assumptions svg { color: #b45309; flex-shrink: 0; margin-top: 2px; }
+.assumptions strong { color: var(--text); font-weight: 700; }
+
+/* Aviso de divergência na etapa Leads (Tráfego+Orgânico ≠ Total) */
+.divergence {
+  display: flex; align-items: flex-start; gap: 7px; font-size: 12.5px; line-height: 1.5;
+  margin-top: 12px; color: var(--text-muted); background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 10px 12px;
+}
+.divergence svg { color: #b45309; flex-shrink: 0; margin-top: 2px; }
+.divergence strong { color: var(--text); font-weight: 700; }
+
+@media (max-width: 720px) {
+  .crossGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpiHero { grid-column: span 2; }
+}

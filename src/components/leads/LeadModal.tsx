@@ -1,12 +1,17 @@
 'use client'
 
-import { useEffect } from 'react'
-import { X, Mail, Phone, Tag, Calendar, BarChart2, ListChecks, Repeat, Megaphone, History, ChevronRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, Mail, Phone, Tag, Calendar, BarChart2, ListChecks, Repeat, Megaphone, History, ChevronRight, CircleDollarSign, TriangleAlert, Pencil } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/supabase'
 import type { Submission, PriorCapture } from '@/lib/dedupe'
 import { scoreLead } from '@/lib/leadScore'
+import { formatBRL } from '@/lib/currency'
+import { logLeadActivity } from '@/lib/leadActivity'
 import ScoreGauge from './ScoreGauge'
 import ResponsibleSelect from './ResponsibleSelect'
+import ConversionValueModal from './ConversionValueModal'
+import LossReasonModal from './LossReasonModal'
 import styles from './LeadModal.module.css'
 
 const STATUS_LABELS: Record<Lead['status'], string> = {
@@ -23,11 +28,30 @@ type Props = {
 }
 
 export default function LeadModal({ lead, onClose, onOpenLead }: Props) {
+  // Valor de conversão / motivo de perda editáveis pelo detalhe do lead.
+  const [convValue, setConvValue] = useState<number | null>(lead.conversion_value)
+  const [lossReason, setLossReason] = useState<string | null>(lead.loss_reason)
+  const [lossNote, setLossNote] = useState<string | null>(lead.loss_reason_note)
+  const [editConv, setEditConv] = useState(false)
+  const [editLoss, setEditLoss] = useState(false)
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
+
+  const saveConversion = async (value: number) => {
+    setConvValue(value); setEditConv(false)
+    await supabase.from('leads').update({ conversion_value: value }).eq('id', lead.id)
+    logLeadActivity(lead.id, 'conversion_value', { metadata: { value } })
+  }
+
+  const saveLoss = async (reason: string, note: string | null) => {
+    setLossReason(reason); setLossNote(note); setEditLoss(false)
+    await supabase.from('leads').update({ loss_reason: reason, loss_reason_note: note }).eq('id', lead.id)
+    logLeadActivity(lead.id, 'loss_reason', { metadata: { reason, note } })
+  }
 
   const utms = [
     { label: 'utm_source',   value: lead.utm_source },
@@ -45,6 +69,7 @@ export default function LeadModal({ lead, onClose, onOpenLead }: Props) {
   const priorCaptures = lead.priorCaptures ?? []
 
   return (
+    <>
     <div className={styles.backdrop} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
 
@@ -113,6 +138,46 @@ export default function LeadModal({ lead, onClose, onOpenLead }: Props) {
             <h3 className={styles.sectionTitle}>Responsável pelo atendimento</h3>
             <ResponsibleSelect leadId={lead.id} leadName={lead.name || 'lead'} value={lead.responsible} />
           </section>
+
+          {lead.status === 'convertido' && (
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <CircleDollarSign size={13} />
+                Valor da conversão
+              </h3>
+              <div className={styles.editableRow}>
+                {convValue != null ? (
+                  <span className={styles.convValue}>{formatBRL(convValue)}</span>
+                ) : (
+                  <span className={styles.pending}><TriangleAlert size={13} /> Valor de fechamento pendente</span>
+                )}
+                <button className={styles.editBtn} onClick={() => setEditConv(true)}>
+                  <Pencil size={13} /> {convValue != null ? 'Editar' : 'Adicionar'}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {lead.status === 'perdido' && (
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                <TriangleAlert size={13} />
+                Motivo da perda
+              </h3>
+              <div className={styles.editableRow}>
+                {lossReason ? (
+                  <span className={styles.lossValue}>
+                    {lossReason}{lossNote ? <span className={styles.lossNote}> — {lossNote}</span> : null}
+                  </span>
+                ) : (
+                  <span className={styles.pending}><TriangleAlert size={13} /> Motivo da perda pendente</span>
+                )}
+                <button className={styles.editBtn} onClick={() => setEditLoss(true)}>
+                  <Pencil size={13} /> {lossReason ? 'Editar' : 'Adicionar'}
+                </button>
+              </div>
+            </section>
+          )}
 
           {customAnswers.length > 0 && (
             <section className={styles.section}>
@@ -224,5 +289,24 @@ export default function LeadModal({ lead, onClose, onOpenLead }: Props) {
         </div>
       </div>
     </div>
+
+    {editConv && (
+      <ConversionValueModal
+        leadName={lead.name || 'lead'}
+        initialValue={convValue}
+        onCancel={() => setEditConv(false)}
+        onConfirm={saveConversion}
+      />
+    )}
+    {editLoss && (
+      <LossReasonModal
+        leadName={lead.name || 'lead'}
+        initialReason={lossReason}
+        initialNote={lossNote}
+        onCancel={() => setEditLoss(false)}
+        onConfirm={saveLoss}
+      />
+    )}
+    </>
   )
 }

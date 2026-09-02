@@ -9,10 +9,11 @@ import styles from './SpreadsheetManager.module.css'
 type Sheet = { name: string; count: number }
 const PAGE = 1000
 
-export default function SpreadsheetManager({ refreshKey, onChanged, isAdmin }: {
+export default function SpreadsheetManager({ refreshKey, onChanged, isAdmin, source = 'planilha' }: {
   refreshKey: number
   onChanged: () => void
   isAdmin?: boolean
+  source?: string
 }) {
   const [sheets, setSheets] = useState<Sheet[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +26,7 @@ export default function SpreadsheetManager({ refreshKey, onChanged, isAdmin }: {
     let from = 0
     for (;;) {
       const { data, error } = await supabase
-        .from('leads').select('form_name').eq('source', 'planilha')
+        .from('leads').select('form_name').eq('source', source)
         .range(from, from + PAGE - 1)
       if (error || !data || data.length === 0) break
       for (const r of data) {
@@ -37,7 +38,7 @@ export default function SpreadsheetManager({ refreshKey, onChanged, isAdmin }: {
     }
     setSheets([...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count))
     setLoading(false)
-  }, [])
+  }, [source])
 
   useEffect(() => { load() }, [load, refreshKey])
 
@@ -45,7 +46,7 @@ export default function SpreadsheetManager({ refreshKey, onChanged, isAdmin }: {
     const name = newName.trim()
     if (!name || name === oldName) { setEditing(null); return }
     setBusy(true)
-    await supabase.from('leads').update({ form_name: name }).eq('source', 'planilha').eq('form_name', oldName)
+    await supabase.from('leads').update({ form_name: name }).eq('source', source).eq('form_name', oldName)
     await logActivity(`renomeou a planilha "${oldName}" para "${name}"`)
     setBusy(false); setEditing(null)
     load(); onChanged()
@@ -54,7 +55,7 @@ export default function SpreadsheetManager({ refreshKey, onChanged, isAdmin }: {
   async function remove(name: string, count: number) {
     if (!confirm(`Excluir a planilha "${name}" e seus ${count} leads? Essa ação não pode ser desfeita.`)) return
     setBusy(true)
-    await supabase.from('leads').delete().eq('source', 'planilha').eq('form_name', name)
+    await supabase.from('leads').delete().eq('source', source).eq('form_name', name)
     await logActivity(`excluiu a planilha "${name}" (${count} leads)`)
     setBusy(false)
     load(); onChanged()

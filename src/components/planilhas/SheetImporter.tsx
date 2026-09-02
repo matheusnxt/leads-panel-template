@@ -12,10 +12,12 @@ export type Parsed = { fileName: string; headers: string[]; rows: SheetRow[] }
 const NONE = '__none__'
 
 // Tela de mapeamento de colunas + preview + importação (origem: arquivo ou Drive)
-export default function SheetImporter({ parsed, onCancel, onImported }: {
+export default function SheetImporter({ parsed, onCancel, onImported, source = 'planilha', mapExtras = false }: {
   parsed: Parsed
   onCancel: () => void
   onImported: (count: number) => void
+  source?: string
+  mapExtras?: boolean
 }) {
   const [map, setMap] = useState({ name: '', email: '', phone: '' })
   const [importing, setImporting] = useState(false)
@@ -30,8 +32,9 @@ export default function SheetImporter({ parsed, onCancel, onImported }: {
     setImporting(true)
     setError(null)
     try {
-      const leads = rowsToLeads(parsed.rows, map, parsed.fileName.replace(/\.[^.]+$/, ''))
-        .map(l => ({ ...l, source: 'planilha' }))
+      const leads = rowsToLeads(parsed.rows, map, parsed.fileName.replace(/\.[^.]+$/, ''),
+        mapExtras ? { mapDate: true, mapForm: true } : undefined)
+        .map(l => ({ ...l, source }))
       for (let i = 0; i < leads.length; i += 500) {
         const { error } = await supabase.from('leads').insert(leads.slice(i, i + 500))
         if (error) throw error

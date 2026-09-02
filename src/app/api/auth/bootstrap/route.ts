@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getAdminClient, usernameToEmail } from '@/lib/auth'
+import { getAdminClient, usernameToEmail, passwordError } from '@/lib/auth'
 
 // Cria o PRIMEIRO administrador. Só funciona se ainda não houver nenhum perfil.
 // Protegido pelo mesmo token do webhook.
@@ -22,8 +22,9 @@ export async function POST(request: NextRequest) {
   const username = String(body.username ?? '').trim().toLowerCase()
   const name = String(body.name ?? '').trim()
   const password = String(body.password ?? '')
-  if (!username || password.length < 6) {
-    return Response.json({ error: 'username e password (mín. 6) obrigatórios.' }, { status: 400 })
+  const pwErr = passwordError(password)
+  if (!username || pwErr) {
+    return Response.json({ error: pwErr ?? 'username obrigatório.' }, { status: 400 })
   }
 
   const { data: created, error } = await admin.auth.admin.createUser({

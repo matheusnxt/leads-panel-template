@@ -95,6 +95,11 @@
   margin-bottom: 16px;
 }
 
+.captcha {
+  margin-bottom: 16px;
+  min-height: 65px;
+}
+
 .btn {
   display: flex;
   align-items: center;

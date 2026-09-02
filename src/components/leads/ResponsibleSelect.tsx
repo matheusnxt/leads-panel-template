@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { UserCheck, ChevronDown, Plus, Check, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { logActivity } from '@/lib/activity'
+import { logLeadActivity } from '@/lib/leadActivity'
 import styles from './ResponsibleSelect.module.css'
 
 // Atribui o responsável pelo atendimento de um lead.
@@ -42,6 +43,7 @@ export default function ResponsibleSelect({ leadId, leadName, value, onChange }:
     logActivity(name
       ? `atribuiu "${leadName}" para ${name}`
       : `removeu o responsável de "${leadName}"`)
+    logLeadActivity(leadId, 'responsible', { metadata: { responsible: name } })
   }
 
   async function addNew() {

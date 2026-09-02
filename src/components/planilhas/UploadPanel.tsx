@@ -7,7 +7,11 @@ import { cellToString, type SheetRow } from '@/lib/sheets'
 import SheetImporter, { type Parsed } from './SheetImporter'
 import styles from './UploadPanel.module.css'
 
-export default function UploadPanel({ onImported }: { onImported: () => void }) {
+export default function UploadPanel({ onImported, source = 'planilha', mapExtras = false }: {
+  onImported: () => void
+  source?: string
+  mapExtras?: boolean
+}) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const [parsed, setParsed] = useState<Parsed | null>(null)
@@ -47,6 +51,8 @@ export default function UploadPanel({ onImported }: { onImported: () => void }) 
     return (
       <SheetImporter
         parsed={parsed}
+        source={source}
+        mapExtras={mapExtras}
         onCancel={() => setParsed(null)}
         onImported={(n) => { setParsed(null); setDone(n); onImported() }}
       />

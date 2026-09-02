@@ -65,7 +65,7 @@ function sortValue(colId: string, l: Lead): number | string {
   return typeof v === 'string' ? v.toLowerCase() : ''
 }
 
-type Props = { leads: Lead[]; allLeads?: Lead[]; size?: 'sm' | 'md' | 'lg'; source: 'meta' | 'planilha' | 'site'; isAdmin?: boolean; fill?: boolean }
+type Props = { leads: Lead[]; allLeads?: Lead[]; size?: 'sm' | 'md' | 'lg'; source: 'meta' | 'planilha' | 'site' | 'upload'; isAdmin?: boolean; fill?: boolean }
 
 export default function LeadListView({ leads, allLeads, size = 'md', source, isAdmin, fill }: Props) {
   const [selected, setSelected] = useState<Lead | null>(null)

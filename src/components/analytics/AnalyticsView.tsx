@@ -2,32 +2,53 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, BarChart3, PieChart, GripVertical } from 'lucide-react'
+import { ArrowLeft, BarChart3, PieChart, GripVertical, TrendingUp, TriangleAlert, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/supabase'
-import { questionFields, distribution, statusDistribution, type Slice } from '@/lib/analytics'
+import {
+  questionFields, distribution, statusDistribution,
+  lossReasonStats, revenueStats, revenueTrend, revenueComparison, type Slice,
+} from '@/lib/analytics'
+import { getRange, inRange, type DateRangeKey } from '@/lib/dateRange'
+import { formatBRL } from '@/lib/currency'
 import { dedupeLeads } from '@/lib/dedupe'
-import { DonutChart, BarChart, StatCard } from './Charts'
+import DateRangeDropdown from '@/components/leads/DateRangeDropdown'
+import { DonutChart, BarChart, TrendChart, StatCard } from './Charts'
 import styles from './AnalyticsView.module.css'
 
 const PAGE_SIZE = 1000
 
-const PERIODS: { key: string; label: string; days: number | null }[] = [
-  { key: 'all', label: 'Tudo', days: null },
-  { key: '30', label: '30 dias', days: 30 },
-  { key: '90', label: '3 meses', days: 90 },
-  { key: '365', label: '12 meses', days: 365 },
-]
+const SRC_LABEL: Record<'meta' | 'planilha' | 'site' | 'upload', string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site', upload: 'Upload' }
 
-const SRC_LABEL: Record<'meta' | 'planilha' | 'site', string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site' }
+const LS_RANGE = 'app-analytics-range'
 
-export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' | 'site' }) {
+export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' | 'site' | 'upload' }) {
   const [allLeads, setAllLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('all')
+
+  // Período reutiliza o mesmo filtro das abas de leads; persiste entre navegações.
+  const [dateKey, setDateKey] = useState<DateRangeKey>('all')
+  const [custom, setCustom] = useState({ from: '', to: '' })
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem(LS_RANGE)
+      if (s) {
+        const parsed = JSON.parse(s)
+        if (parsed.dateKey) setDateKey(parsed.dateKey)
+        if (parsed.custom) setCustom(parsed.custom)
+      }
+    } catch { /* ignora */ }
+  }, [])
+
+  const persistRange = (key: DateRangeKey, c: { from: string; to: string }) => {
+    try { localStorage.setItem(LS_RANGE, JSON.stringify({ dateKey: key, custom: c })) } catch { /* ignora */ }
+  }
+  const onDateKey = (k: DateRangeKey) => { setDateKey(k); persistRange(k, custom) }
+  const onCustom = (c: { from: string; to: string }) => { setCustom(c); persistRange(dateKey, c) }
 
   useEffect(() => {
     let cancel = false
@@ -49,30 +70,38 @@ export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' 
     return () => { cancel = true }
   }, [source])
 
+  const range = useMemo(() => getRange(dateKey, custom), [dateKey, custom])
+
+  // Linhas brutas no período (para faturamento/perda, que são fatos por linha).
+  const rawInRange = useMemo(
+    () => allLeads.filter(l => inRange(l.created_at, range)),
+    [allLeads, range],
+  )
+
+  // Pessoas únicas no período (para distribuições e contagem de status).
   const leads = useMemo(() => {
-    const merged = dedupeLeads(allLeads) // pessoas únicas
-    const days = PERIODS.find(p => p.key === period)?.days
-    if (!days) return merged
-    const cutoff = Date.now() - days * 86400000
-    return merged.filter(l => new Date(l.created_at).getTime() >= cutoff)
-  }, [allLeads, period])
+    const merged = dedupeLeads(allLeads)
+    return merged.filter(l => inRange(l.created_at, range))
+  }, [allLeads, range])
 
   const fields = useMemo(() => questionFields(leads), [leads])
   const statusData = useMemo(() => statusDistribution(leads), [leads])
-  const backHref = source === 'planilha' ? '/planilhas' : source === 'site' ? '/leads-site' : '/'
+  const backHref = source === 'planilha' ? '/planilhas' : source === 'site' ? '/leads-site' : source === 'upload' ? '/leads-upload' : '/'
 
   const metrics = useMemo(() => {
     const by = (s: string) => leads.filter(l => l.status === s).length
     const total = leads.length
     const conv = by('convertido')
     return {
-      total,
-      novos: by('novo'),
-      contato: by('em_contato'),
-      convertidos: conv,
+      total, novos: by('novo'), contato: by('em_contato'), convertidos: conv,
       taxa: total ? Math.round((conv / total) * 100) : 0,
     }
   }, [leads])
+
+  const revenue = useMemo(() => revenueStats(rawInRange), [rawInRange])
+  const trend = useMemo(() => revenueTrend(rawInRange, range), [rawInRange, range])
+  const comparison = useMemo(() => revenueComparison(allLeads, range), [allLeads, range])
+  const loss = useMemo(() => lossReasonStats(rawInRange), [rawInRange])
 
   // Cards de gráficos (status + cada pergunta), reordenáveis e persistidos
   type Card = { id: string; title: string; useDonut: boolean; data: Slice[] }
@@ -121,17 +150,7 @@ export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' 
           <h1 className={styles.title}>Analytics</h1>
           <p className={styles.subtitle}>{SRC_LABEL[source]}</p>
         </div>
-        <div className={styles.segmented}>
-          {PERIODS.map(p => (
-            <button
-              key={p.key}
-              className={`${styles.segBtn} ${period === p.key ? styles.segActive : ''}`}
-              onClick={() => setPeriod(p.key)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <DateRangeDropdown dateKey={dateKey} onDateKey={onDateKey} custom={custom} onCustom={onCustom} />
       </div>
 
       {leads.length === 0 ? (
@@ -140,10 +159,65 @@ export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' 
         <>
           <div className={styles.statsRow}>
             <StatCard label="Total de leads" value={metrics.total.toLocaleString('pt-BR')} />
-            <StatCard label="Novos" value={metrics.novos.toLocaleString('pt-BR')} accent="var(--brand-blue)" />
-            <StatCard label="Em contato" value={metrics.contato.toLocaleString('pt-BR')} accent="#d97706" />
             <StatCard label="Convertidos" value={metrics.convertidos.toLocaleString('pt-BR')} accent="#059669" />
             <StatCard label="Taxa de conversão" value={metrics.taxa} unit="%" accent="#059669" />
+            <StatCard label="Faturamento" value={formatBRL(revenue.total)} accent="#059669" />
+            <StatCard label="Ticket médio" value={revenue.count ? formatBRL(revenue.ticket) : '—'} accent="var(--brand-blue)" />
+          </div>
+
+          {/* Faturamento + Motivos de perda (bento) */}
+          <div className={styles.grid}>
+            <div className={`${styles.card} ${styles.cardSpan2}`}>
+              <h3 className={styles.cardTitle}>
+                <TrendingUp size={15} />
+                <span>Evolução do faturamento</span>
+                {comparison && comparison.deltaPct != null && (
+                  <span className={`${styles.delta} ${comparison.deltaPct >= 0 ? styles.deltaUp : styles.deltaDown}`}>
+                    {comparison.deltaPct >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {Math.abs(Math.round(comparison.deltaPct))}%
+                  </span>
+                )}
+              </h3>
+              <TrendChart points={trend.points} unit={trend.unit} />
+              {comparison && (
+                <div className={styles.cardNote}>
+                  Período anterior: {formatBRL(comparison.previous)}
+                </div>
+              )}
+              {revenue.missing > 0 && (
+                <div className={styles.warnNote}>
+                  <TriangleAlert size={13} /> {revenue.missing} convertido{revenue.missing > 1 ? 's' : ''} sem valor preenchido (fora da soma)
+                </div>
+              )}
+            </div>
+
+            <div className={styles.card}>
+              <h3 className={styles.cardTitle}>
+                <BarChart3 size={15} />
+                <span>Motivos de perda</span>
+              </h3>
+              {loss.total === 0 ? (
+                <div className={styles.cardEmpty}>Nenhuma perda com motivo registrado no período.</div>
+              ) : (
+                <>
+                  {loss.top && (
+                    <div className={styles.highlight}>
+                      <span className={styles.highlightLabel}>Motivo #1</span>
+                      <span className={styles.highlightValue}>{loss.top.label}</span>
+                      <span className={styles.highlightPct}>
+                        {loss.total ? Math.round((loss.top.value / loss.total) * 100) : 0}%
+                      </span>
+                    </div>
+                  )}
+                  <BarChart data={loss.slices} />
+                </>
+              )}
+              {loss.missing > 0 && (
+                <div className={styles.warnNote}>
+                  <TriangleAlert size={13} /> {loss.missing} lead{loss.missing > 1 ? 's' : ''} sem motivo registrado
+                </div>
+              )}
+            </div>
           </div>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

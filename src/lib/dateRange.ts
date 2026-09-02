@@ -1,6 +1,6 @@
 export type DateRangeKey =
   | 'all' | 'today' | 'yesterday' | 'last3' | 'last7'
-  | 'last14' | 'month' | 'last3months' | 'custom'
+  | 'last14' | 'month' | 'lastmonth' | 'last3months' | 'custom'
 
 export const DATE_OPTIONS: { key: DateRangeKey; label: string }[] = [
   { key: 'all',         label: 'Todo o período' },
@@ -10,6 +10,7 @@ export const DATE_OPTIONS: { key: DateRangeKey; label: string }[] = [
   { key: 'last7',       label: 'Últimos 7 dias' },
   { key: 'last14',      label: 'Últimos 14 dias' },
   { key: 'month',       label: 'Esse mês' },
+  { key: 'lastmonth',   label: 'Mês passado' },
   { key: 'last3months', label: 'Últimos 3 meses' },
   { key: 'custom',      label: 'Personalizado' },
 ]
@@ -50,6 +51,11 @@ export function getRange(
     case 'month': {
       const f = new Date(now.getFullYear(), now.getMonth(), 1)
       return { from: f, to: null }
+    }
+    case 'lastmonth': {
+      const f = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const t = new Date(now.getFullYear(), now.getMonth(), 1)
+      return { from: f, to: t }
     }
     case 'last3months': {
       const f = new Date(today); f.setMonth(f.getMonth() - 3)

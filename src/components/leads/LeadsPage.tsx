@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { Lead } from '@/lib/supabase'
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useView } from '@/contexts/ViewContext'
 import { useSession } from '@/contexts/SessionContext'
 import { getRange, inRange, type DateRangeKey } from '@/lib/dateRange'
@@ -11,6 +12,7 @@ import { scoreLead } from '@/lib/leadScore'
 import { dedupeLeads, CONVERSION_WINDOW_DAYS } from '@/lib/dedupe'
 import { buildExport, download, uploadExport, type ExportFormat } from '@/lib/export'
 import { logActivity } from '@/lib/activity'
+import { logLeadActivity } from '@/lib/leadActivity'
 import FilterBar from './FilterBar'
 import LeadListView from './LeadListView'
 import LeadKanbanView from './LeadKanbanView'
@@ -18,8 +20,8 @@ import styles from './LeadsPage.module.css'
 
 const PAGE_SIZE = 1000
 
-export type LeadSource = 'meta' | 'planilha' | 'site'
-const SOURCE_LABEL: Record<LeadSource, string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site' }
+export type LeadSource = 'meta' | 'planilha' | 'site' | 'upload'
+const SOURCE_LABEL: Record<LeadSource, string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site', upload: 'Upload' }
 
 type Props = {
   source?: LeadSource
@@ -75,16 +77,69 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
   }
   const updateLeadStatus = async (id: string, status: Lead['status']) => {
     const lead = leads.find(l => l.id === id)
+    const from = lead?.status
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
     await supabase.from('leads').update({ status }).eq('id', id)
     logActivity(`moveu o card de "${lead?.name || 'lead'}" para "${STATUS_LABELS[status]}"`)
+    if (from && from !== status) logLeadActivity(id, 'stage_change', { fromStage: from, toStage: status })
+  }
+
+  // Mover para Convertido (ou preencher card legado): grava valor + status.
+  const convertLead = async (id: string, value: number, fromStage: Lead['status']) => {
+    const lead = leads.find(l => l.id === id)
+    const moved = fromStage !== 'convertido'
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status: 'convertido', conversion_value: value } : l))
+    await supabase.from('leads').update({ status: 'convertido', conversion_value: value }).eq('id', id)
+    if (moved) {
+      logActivity(`moveu o card de "${lead?.name || 'lead'}" para "Convertido"`)
+      logLeadActivity(id, 'stage_change', { fromStage, toStage: 'convertido' })
+    }
+    logLeadActivity(id, 'conversion_value', { metadata: { value } })
+  }
+
+  // Mover para Perdido (ou preencher card legado): grava motivo + status.
+  const loseLead = async (id: string, reason: string, note: string | null, fromStage: Lead['status']) => {
+    const lead = leads.find(l => l.id === id)
+    const moved = fromStage !== 'perdido'
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status: 'perdido', loss_reason: reason, loss_reason_note: note } : l))
+    await supabase.from('leads').update({ status: 'perdido', loss_reason: reason, loss_reason_note: note }).eq('id', id)
+    if (moved) {
+      logActivity(`moveu o card de "${lead?.name || 'lead'}" para "Perdido"`)
+      logLeadActivity(id, 'stage_change', { fromStage, toStage: 'perdido' })
+    }
+    logLeadActivity(id, 'loss_reason', { metadata: { reason, note } })
   }
 
   useEffect(() => {
     fetchLeads()
+
+    // Aplica cada mudança do realtime direto no estado local (uma linha por
+    // vez), em vez de re-buscar todos os ~2k leads a cada evento. Também evita
+    // que os nossos próprios updates otimistas disparem um refetch completo.
+    const applyChange = (payload: RealtimePostgresChangesPayload<Lead & { source: string }>) => {
+      if (payload.eventType === 'DELETE') {
+        const id = (payload.old as { id?: string }).id
+        if (id) setLeads(prev => prev.filter(l => l.id !== id))
+        return
+      }
+      const row = payload.new
+      // INSERT/UPDATE de outra origem: ignora (ou remove, se mudou de origem)
+      if (row.source !== source) {
+        setLeads(prev => prev.some(l => l.id === row.id) ? prev.filter(l => l.id !== row.id) : prev)
+        return
+      }
+      setLeads(prev => {
+        const idx = prev.findIndex(l => l.id === row.id)
+        if (idx === -1) return [row, ...prev] // INSERT (mais recente primeiro)
+        const next = [...prev]                // UPDATE
+        next[idx] = row
+        return next
+      })
+    }
+
     const channel = supabase
       .channel(`leads-realtime-${source}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchLeads)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, applyChange)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -201,7 +256,7 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
       </div>
       {view === 'list'
         ? <LeadListView leads={visibleLeads} allLeads={mergedLeads} size={listSize} source={source} isAdmin={isAdmin} fill={fillHeight} />
-        : <LeadKanbanView leads={visibleLeads} allLeads={mergedLeads} onStatusChange={updateLeadStatus} fill={fillHeight} />}
+        : <LeadKanbanView leads={visibleLeads} allLeads={mergedLeads} onStatusChange={updateLeadStatus} onConvert={convertLead} onLose={loseLead} fill={fillHeight} />}
     </div>
   )
 }

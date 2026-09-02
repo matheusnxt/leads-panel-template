@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getAdminClient, requireAdm, usernameToEmail, logAdminAction, type Role } from '@/lib/auth'
+import { getAdminClient, requireAdm, usernameToEmail, logAdminAction, passwordError, type Role } from '@/lib/auth'
 import { TAB_KEYS } from '@/lib/tabs'
 
 // Lista todos os usuários (somente ADM)
@@ -27,6 +27,11 @@ export async function POST(request: NextRequest) {
   const username = String(body.username ?? '').trim().toLowerCase()
   const name = String(body.name ?? '').trim()
   const password = String(body.password ?? '')
+  // E-mail real é opcional (migração gradual). Se vazio, usa o sintético do username.
+  const email = String(body.email ?? '').trim().toLowerCase()
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return Response.json({ error: 'E-mail inválido.' }, { status: 400 })
+  }
   const role: Role = body.role === 'adm' ? 'adm' : 'usuario'
   const permissions: string[] = Array.isArray(body.permissions)
     ? body.permissions.filter((p: string) => (TAB_KEYS as string[]).includes(p))
@@ -35,15 +40,16 @@ export async function POST(request: NextRequest) {
   if (!username || !password) {
     return Response.json({ error: 'Usuário e senha são obrigatórios.' }, { status: 400 })
   }
-  if (password.length < 6) {
-    return Response.json({ error: 'A senha precisa ter ao menos 6 caracteres.' }, { status: 400 })
+  const pwErr = passwordError(password)
+  if (pwErr) {
+    return Response.json({ error: pwErr }, { status: 400 })
   }
 
   const admin = getAdminClient()
 
   // cria no Auth já confirmado (sem e-mail de verificação)
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: usernameToEmail(username),
+    email: email || usernameToEmail(username),
     password,
     email_confirm: true,
   })

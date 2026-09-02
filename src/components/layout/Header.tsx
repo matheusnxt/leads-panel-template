@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Search, LayoutList, Columns3, Menu, Sun, Moon } from 'lucide-react'
+import { Search, LayoutList, Columns3, Menu, Sun, Moon, RefreshCw } from 'lucide-react'
 import { useView } from '@/contexts/ViewContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import styles from './Header.module.css'
@@ -12,6 +13,8 @@ const TITLES: Record<string, { title: string; badge: string }> = {
   '/planilhas': { title: 'Leads Planilhas', badge: 'Planilhas' },
   '/usuarios': { title: 'Usuários', badge: 'Acesso' },
   '/analytics': { title: 'Analytics', badge: 'Métricas' },
+  '/ads': { title: 'Meta Ads', badge: 'Anúncios' },
+  '/funil': { title: 'Funil', badge: 'HubSpot' },
   '/atividades': { title: 'Atividades', badge: 'Log' },
   '/eventos': { title: 'Eventos', badge: 'Stand' },
 }
@@ -19,6 +22,7 @@ const TITLES: Record<string, { title: string; badge: string }> = {
 export default function Header({ onMenu }: { onMenu?: () => void }) {
   const { view, setView, search, setSearch } = useView()
   const { theme, toggleTheme } = useTheme()
+  const [refreshing, setRefreshing] = useState(false)
   const pathname = usePathname()
   const meta = pathname.startsWith('/eventos') ? TITLES['/eventos'] : (TITLES[pathname] ?? TITLES['/'])
   const showLeadControls = pathname === '/' || pathname === '/leads-site' || pathname === '/planilhas'
@@ -64,6 +68,24 @@ export default function Header({ onMenu }: { onMenu?: () => void }) {
               </button>
             </div>
           </>
+        )}
+
+        {showLeadControls && (
+          <button
+            className={styles.themeBtn}
+            onClick={() => {
+              setRefreshing(true)
+              window.location.reload()
+            }}
+            title="Atualizar página"
+            aria-label="Atualizar página"
+          >
+            <RefreshCw
+              size={17}
+              strokeWidth={1.75}
+              className={refreshing ? styles.spinning : undefined}
+            />
+          </button>
         )}
 
         <button

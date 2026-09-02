@@ -148,5 +148,8 @@ export function toLeadRow(
     adset: utm?.adset ?? null,
     ad_name: utm?.ad_name ?? null,
     responsible: null,
+    conversion_value: null,
+    loss_reason: null,
+    loss_reason_note: null,
   }
 }

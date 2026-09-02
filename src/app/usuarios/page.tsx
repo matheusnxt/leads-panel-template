@@ -7,6 +7,7 @@ import { UserPlus, Trash2, Loader2, ShieldCheck, User, Pencil, X, Check, Activit
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/contexts/SessionContext'
 import { TABS, type TabKey } from '@/lib/tabs'
+import { passwordError, PASSWORD_RULE } from '@/lib/auth'
 import styles from './page.module.css'
 
 type AppUser = {
@@ -18,7 +19,7 @@ type AppUser = {
   created_at: string
 }
 
-const emptyForm = { name: '', username: '', password: '', role: 'usuario' as 'adm' | 'usuario', permissions: ['leads', 'site', 'planilhas', 'eventos'] as string[] }
+const emptyForm = { name: '', username: '', email: '', password: '', role: 'usuario' as 'adm' | 'usuario', permissions: ['leads', 'site', 'planilhas', 'eventos'] as string[] }
 
 export default function UsuariosPage() {
   const { profile, loading: sessLoading } = useSession()
@@ -52,6 +53,8 @@ export default function UsuariosPage() {
   async function createUser(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    const pwErr = passwordError(form.password)
+    if (pwErr) { setError(pwErr); return }
     setSaving(true)
     const headers = { ...(await authHeader()), 'Content-Type': 'application/json' }
     const res = await fetch('/api/users', { method: 'POST', headers, body: JSON.stringify(form) })
@@ -95,8 +98,13 @@ export default function UsuariosPage() {
             <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="maria" required />
           </label>
           <label className={styles.field}>
+            <span>E-mail <small className={styles.optional}>(opcional)</small></span>
+            <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="maria@empresa.com" autoComplete="off" />
+          </label>
+          <label className={styles.field}>
             <span>Senha</span>
-            <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="mín. 6 caracteres" required />
+            <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Ex.: Saude@2026" autoComplete="new-password" required />
+            <small className={styles.hint}>{PASSWORD_RULE}</small>
           </label>
           <label className={styles.field}>
             <span>Permissão</span>
@@ -188,8 +196,12 @@ function EditModal({ user, onClose, onSaved, authHeader }: {
   const [error, setError] = useState<string | null>(null)
 
   async function save() {
-    setSaving(true)
     setError(null)
+    if (password) {
+      const pwErr = passwordError(password)
+      if (pwErr) { setError(pwErr); return }
+    }
+    setSaving(true)
     const headers = { ...(await authHeader()), 'Content-Type': 'application/json' }
     const body: Record<string, unknown> = { name, role, permissions }
     if (password) body.password = password
@@ -240,7 +252,8 @@ function EditModal({ user, onClose, onSaved, authHeader }: {
 
         <label className={styles.field}>
           <span>Nova senha (opcional)</span>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="deixe em branco para manter" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="deixe em branco para manter" autoComplete="new-password" />
+          {password && <small className={styles.hint}>{PASSWORD_RULE}</small>}
         </label>
 
         {error && <div className={styles.error}>{error}</div>}

@@ -1,6 +1,7 @@
 'use client'
 
-import { PALETTE, type Slice } from '@/lib/analytics'
+import { PALETTE, type Slice, type TrendPoint } from '@/lib/analytics'
+import { formatBRL } from '@/lib/currency'
 import styles from './Charts.module.css'
 
 const pct = (v: number, total: number) => total ? Math.round((v / total) * 100) : 0
@@ -61,6 +62,38 @@ export function DonutChart({ data }: { data: Slice[] }) {
             <span className={styles.legendValue}>{pct(s.value, total)}%</span>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// Gráfico de barras verticais para evolução do faturamento (valores em BRL).
+export function TrendChart({ points, unit }: { points: TrendPoint[]; unit: string }) {
+  const max = Math.max(...points.map(p => p.value), 1)
+  const total = points.reduce((a, p) => a + p.value, 0)
+
+  if (points.length === 0) {
+    return <div className={styles.trendEmpty}>Sem faturamento no período.</div>
+  }
+
+  return (
+    <div className={styles.trend}>
+      <div className={styles.trendBars}>
+        {points.map((p, i) => (
+          <div key={i} className={styles.trendCol} title={`${p.label}: ${formatBRL(p.value)}`}>
+            <div className={styles.trendBarWrap}>
+              <div
+                className={styles.trendBar}
+                style={{ height: `${Math.max((p.value / max) * 100, p.value > 0 ? 4 : 0)}%` }}
+              />
+            </div>
+            <span className={styles.trendLabel}>{p.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className={styles.trendFoot}>
+        <span>Por {unit}</span>
+        <span className={styles.trendTotal}>{formatBRL(total)}</span>
       </div>
     </div>
   )

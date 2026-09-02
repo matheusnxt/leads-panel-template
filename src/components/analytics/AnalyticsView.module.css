@@ -81,12 +81,13 @@
   margin-bottom: 16px;
 }
 
-/* Grid de gráficos */
+/* Grid bento — colunas fixas + fluxo denso, cards da mesma linha com altura igual */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: dense;
   gap: 16px;
-  align-items: start;
+  margin-bottom: 16px;
 }
 
 .card {
@@ -94,9 +95,12 @@
   border: 1px solid var(--muted);
   border-radius: 16px;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.cardWide { grid-column: span 1; }
+.cardSpan2 { grid-column: span 2; }
 
 .cardTitle {
   display: flex;
@@ -140,12 +144,85 @@
 
 @keyframes spin { to { transform: rotate(360deg) } }
 
+@media (max-width: 1024px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cardSpan2 { grid-column: span 2; }
+}
+
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
+  .cardSpan2 { grid-column: span 1; }
   .statsRow { grid-template-columns: 1fr 1fr; }
   .segmented { width: 100%; overflow-x: auto; }
   .head { gap: 12px; }
 }
+
+/* Nota informativa / alerta dentro de um card */
+.cardNote {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+
+.warnNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 7px 10px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+.warnNote svg { flex-shrink: 0; }
+
+.cardEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 24px 8px;
+}
+
+/* Variação vs. período anterior (chip no título) */
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+.deltaUp { color: #059669; background: rgba(52, 211, 153, 0.14); }
+.deltaDown { color: #dc2626; background: rgba(248, 113, 113, 0.14); }
+
+/* Destaque do motivo de perda #1 */
+.highlight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.highlightLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #dc2626;
+}
+.highlightValue { font-size: 14px; font-weight: 700; color: var(--text); }
+.highlightPct { margin-left: auto; font-size: 14px; font-weight: 800; color: #dc2626; }
 
 .dragHandle {
   margin-left: auto;

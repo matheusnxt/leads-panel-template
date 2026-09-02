@@ -8,6 +8,18 @@ export const usernameToEmail = (username: string) =>
 
 export type Role = 'adm' | 'usuario'
 
+// Política de senha forte (compartilhada entre servidor e UI):
+// mín. 8 caracteres, com maiúscula, minúscula, número e símbolo.
+export const PASSWORD_RULE = 'A senha precisa ter no mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.'
+export function passwordError(pw: string): string | null {
+  if (pw.length < 8) return PASSWORD_RULE
+  if (!/[a-z]/.test(pw)) return PASSWORD_RULE
+  if (!/[A-Z]/.test(pw)) return PASSWORD_RULE
+  if (!/[0-9]/.test(pw)) return PASSWORD_RULE
+  if (!/[^A-Za-z0-9]/.test(pw)) return PASSWORD_RULE
+  return null
+}
+
 // Cliente com a service role — SOMENTE no servidor (route handlers).
 // Bypassa RLS para criar/listar/excluir usuários.
 export function getAdminClient() {

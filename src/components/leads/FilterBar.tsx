@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, Check, CalendarDays, ChartPie, AArrowDown, AArrowUp, Download, FileText, FileSpreadsheet, FileType, SlidersHorizontal, Star } from 'lucide-react'
-import { DATE_OPTIONS, type DateRangeKey } from '@/lib/dateRange'
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, Check, ChartPie, AArrowDown, AArrowUp, Download, FileText, FileSpreadsheet, FileType, SlidersHorizontal, Star } from 'lucide-react'
+import { type DateRangeKey } from '@/lib/dateRange'
+import DateRangeDropdown from './DateRangeDropdown'
 import styles from './FilterBar.module.css'
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
   onDateKey: (k: DateRangeKey) => void
   custom: { from: string; to: string }
   onCustom: (c: { from: string; to: string }) => void
-  source: 'meta' | 'planilha' | 'site'
+  source: 'meta' | 'planilha' | 'site' | 'upload'
   listSize: 'sm' | 'md' | 'lg'
   onListSize: (s: 'sm' | 'md' | 'lg') => void
   showSize: boolean
@@ -44,24 +45,19 @@ export default function FilterBar({
   const decSize = () => onListSize(SIZES[Math.max(0, SIZES.indexOf(listSize) - 1)])
   const incSize = () => onListSize(SIZES[Math.min(2, SIZES.indexOf(listSize) + 1)])
   const [open, setOpen] = useState(false)
-  const [dateOpen, setDateOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(true)
   const ref = useRef<HTMLDivElement>(null)
-  const dateRef = useRef<HTMLDivElement>(null)
   const exportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-      if (dateRef.current && !dateRef.current.contains(e.target as Node)) setDateOpen(false)
       if (exportRef.current && !exportRef.current.contains(e.target as Node)) setExportOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
-
-  const dateLabel = DATE_OPTIONS.find(o => o.key === dateKey)?.label ?? 'Todo o período'
 
   const allSelected = selectedForms.length === 0
   const formLabel = allSelected
@@ -111,56 +107,7 @@ export default function FilterBar({
           )}
         </div>
 
-        <div className={styles.dropdown} ref={dateRef}>
-          <button className={styles.dropdownBtn} onClick={() => setDateOpen(o => !o)}>
-            <CalendarDays size={15} strokeWidth={1.75} />
-            <span>{dateLabel}</span>
-            <ChevronDown size={15} className={dateOpen ? styles.chevOpen : ''} />
-          </button>
-
-          {dateOpen && (
-            <div className={styles.menu}>
-              <div className={styles.menuList}>
-                {DATE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.key}
-                    className={styles.menuItem}
-                    onClick={() => {
-                      onDateKey(opt.key)
-                      if (opt.key !== 'custom') setDateOpen(false)
-                    }}
-                  >
-                    <span className={`${styles.radio} ${dateKey === opt.key ? styles.radioOn : ''}`}>
-                      {dateKey === opt.key && <Check size={12} strokeWidth={3} />}
-                    </span>
-                    <span className={styles.menuItemLabel}>{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {dateKey === 'custom' && (
-                <div className={styles.customRange}>
-                  <label>
-                    <span>De</span>
-                    <input
-                      type="date"
-                      value={custom.from}
-                      onChange={e => onCustom({ ...custom, from: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>Até</span>
-                    <input
-                      type="date"
-                      value={custom.to}
-                      onChange={e => onCustom({ ...custom, to: e.target.value })}
-                    />
-                  </label>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <DateRangeDropdown dateKey={dateKey} onDateKey={onDateKey} custom={custom} onCustom={onCustom} />
 
         <button className={styles.sortBtn} onClick={onToggleSort}>
           {sortAsc

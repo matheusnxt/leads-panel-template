@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Users, FileSpreadsheet, UserCog, LogOut, Zap, CalendarHeart, Globe } from 'lucide-react'
+import { Users, FileSpreadsheet, UserCog, LogOut, Zap, CalendarHeart, Globe, Megaphone, Filter, Upload } from 'lucide-react'
 import { useSession } from '@/contexts/SessionContext'
 import { APP_NAME } from '@/lib/brand'
 import { allowedPaths } from '@/lib/tabs'
@@ -12,7 +12,10 @@ const navItems = [
   { icon: Users, label: 'Leads', href: '/' },
   { icon: Globe, label: 'Leads Site', href: '/leads-site' },
   { icon: FileSpreadsheet, label: 'Leads Planilhas', href: '/planilhas' },
+  { icon: Upload, label: 'Leads - Upload', href: '/leads-upload' },
   { icon: CalendarHeart, label: 'Eventos', href: '/eventos' },
+  { icon: Megaphone, label: 'Meta Ads', href: '/ads' },
+  { icon: Filter, label: 'Funil', href: '/funil' },
 ]
 
 export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {

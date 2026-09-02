@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getAdminClient, requireAdm, logAdminAction, type Role } from '@/lib/auth'
+import { getAdminClient, requireAdm, logAdminAction, passwordError, type Role } from '@/lib/auth'
 import { TAB_KEYS } from '@/lib/tabs'
 
 // Edita um usuário: nome, papel, permissões e (opcionalmente) senha. Somente ADM.
@@ -27,8 +27,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<'/api/users/
 
   // troca de senha (opcional)
   if (body.password) {
-    if (String(body.password).length < 6) {
-      return Response.json({ error: 'A senha precisa ter ao menos 6 caracteres.' }, { status: 400 })
+    const pwErr = passwordError(String(body.password))
+    if (pwErr) {
+      return Response.json({ error: pwErr }, { status: 400 })
     }
     const { error } = await admin.auth.admin.updateUserById(id, { password: String(body.password) })
     if (error) return Response.json({ error: error.message }, { status: 400 })

@@ -1,0 +1,112 @@
+.dropdown { position: relative; }
+
+.dropdownBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--muted);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.dropdownBtn:hover { border-color: var(--hover-border); }
+.dropdownBtn svg { color: var(--text-muted); transition: transform 0.18s ease; }
+.chevOpen { transform: rotate(180deg); }
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: 300px;
+  max-width: 80vw;
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--muted);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(13, 40, 55, 0.14);
+  padding: 6px;
+  animation: pop 0.14s ease;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(-4px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+
+.menuList { max-height: 320px; overflow-y: auto; }
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 7px;
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.menuItem:hover { background: rgba(13, 40, 55, 0.05); }
+.menuItemLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: #fff;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.radioOn { background: var(--brand-blue); border-color: var(--brand-blue); }
+
+.customRange {
+  display: flex;
+  gap: 8px;
+  padding: 10px 6px 4px;
+  border-top: 1px solid var(--muted);
+  margin-top: 4px;
+}
+
+.customRange label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.customRange input {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--muted);
+  border-radius: 7px;
+  background: var(--background);
+  font-size: 12.5px;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: var(--text);
+  outline: none;
+}
+
+.customRange input:focus { border-color: var(--brand-blue); }

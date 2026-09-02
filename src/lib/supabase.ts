@@ -26,4 +26,9 @@ export type Lead = {
   ad_name: string | null
   // Responsável pelo atendimento
   responsible: string | null
+  // Valor do fechamento (stage Convertido) — BRL decimal
+  conversion_value: number | null
+  // Motivo da perda (stage Perdido) + observação livre para "Outro"
+  loss_reason: string | null
+  loss_reason_note: string | null
 }

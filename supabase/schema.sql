@@ -26,7 +26,10 @@ create table if not exists public.leads (
   campaign      text,
   adset         text,
   ad_name       text,
-  responsible   text
+  responsible   text,
+  conversion_value numeric,                 -- valor do fechamento (stage Convertido)
+  loss_reason      text,                    -- motivo da perda (stage Perdido)
+  loss_reason_note text                     -- observação livre quando motivo = "Outro"
 );
 create index if not exists leads_created_at_idx on public.leads (created_at desc);
 create index if not exists leads_source_idx on public.leads (source);
@@ -67,6 +70,34 @@ create table if not exists public.activity_log (
   created_at timestamptz not null default now()
 );
 
+-- ── LOG DE ATIVIDADES POR LEAD (timeline do card) ────────────────────────────
+create table if not exists public.lead_activity_log (
+  id         uuid primary key default gen_random_uuid(),
+  lead_id    uuid not null references public.leads(id) on delete cascade,
+  user_id    uuid,
+  user_name  text,
+  action     text not null,   -- created | stage_change | conversion_value | loss_reason | responsible
+  from_stage text,
+  to_stage   text,
+  metadata   jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists lead_activity_lead_idx on public.lead_activity_log (lead_id, created_at desc);
+
+-- Registra automaticamente a criação de qualquer lead (qualquer origem).
+create or replace function public.log_lead_created() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.lead_activity_log (lead_id, action, to_stage, created_at)
+  values (new.id, 'created', new.status, new.created_at);
+  return new;
+end;
+$$;
+drop trigger if exists trg_log_lead_created on public.leads;
+create trigger trg_log_lead_created
+  after insert on public.leads
+  for each row execute function public.log_lead_created();
+
 -- ── EVENTOS ──────────────────────────────────────────────────────────────────
 create table if not exists public.events (
   id         uuid primary key default gen_random_uuid(),
@@ -97,6 +128,7 @@ alter table public.profiles            enable row level security;
 alter table public.view_settings       enable row level security;
 alter table public.responsibles        enable row level security;
 alter table public.activity_log        enable row level security;
+alter table public.lead_activity_log   enable row level security;
 alter table public.events              enable row level security;
 alter table public.event_registrations enable row level security;
 
@@ -123,6 +155,12 @@ create policy activity_insert on public.activity_log
   for insert to authenticated with check (true);
 create policy activity_admin_read on public.activity_log
   for select to authenticated using (public.is_admin());
+
+-- lead_activity_log: autenticado insere e lê (timeline). Sem update/delete = read-only.
+create policy lead_activity_insert on public.lead_activity_log
+  for insert to authenticated with check (true);
+create policy lead_activity_read on public.lead_activity_log
+  for select to authenticated using (true);
 
 -- events: autenticado lê; só admin escreve
 create policy events_auth_read on public.events
