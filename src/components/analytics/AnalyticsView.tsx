@@ -13,6 +13,7 @@ import {
   lossReasonStats, revenueStats, revenueTrend, revenueComparison, type Slice,
 } from '@/lib/analytics'
 import { getRange, inRange, type DateRangeKey } from '@/lib/dateRange'
+import { filtroFormulariosExcluidos } from '@/lib/exclusions'
 import { formatBRL } from '@/lib/currency'
 import { dedupeLeads } from '@/lib/dedupe'
 import DateRangeDropdown from '@/components/leads/DateRangeDropdown'
@@ -53,11 +54,13 @@ export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' 
   useEffect(() => {
     let cancel = false
     ;(async () => {
+      const EXCLUIDOS = filtroFormulariosExcluidos()
       const all: Lead[] = []
       let from = 0
       for (;;) {
         const { data, error } = await supabase
           .from('leads').select('*').eq('source', source)
+          .not(EXCLUIDOS.coluna, 'in', EXCLUIDOS.valores)
           .order('created_at', { ascending: false })
           .range(from, from + PAGE_SIZE - 1)
         if (error || !data || data.length === 0) break

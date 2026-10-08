@@ -11,6 +11,7 @@ import { GridLayout, useContainerWidth, type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import type { AccountMetrics, DailyPoint, FunnelData, TableRow, CreativeRow } from '@/lib/metaAds'
 import { getRange, type DateRangeKey } from '@/lib/dateRange'
+import { filtroFormulariosExcluidos } from '@/lib/exclusions'
 import { formatBRL } from '@/lib/currency'
 import { supabase } from '@/lib/supabase'
 import { useSession } from '@/contexts/SessionContext'
@@ -119,7 +120,9 @@ export default function MetaAdsView() {
 
     const range = getRange(dateKey, custom)
     const countLeads = async (source: 'meta' | 'site') => {
+      const ex = filtroFormulariosExcluidos()
       let q = supabase.from('leads').select('id', { count: 'exact', head: true }).eq('source', source)
+        .not(ex.coluna, 'in', ex.valores)
       if (range.from) q = q.gte('created_at', range.from.toISOString())
       if (range.to) q = q.lt('created_at', range.to.toISOString())
       const { count } = await q
@@ -147,8 +150,10 @@ export default function MetaAdsView() {
     fetch(`/api/meta-ads/overview?dateKey=custom&from=${isoDay(pFrom)}&to=${untilDay}`, { cache: 'no-store' })
       .then(r => r.json()).then(d => { if (!cancel && !d.error) setPrev(d) }).catch(() => {})
     const countPrev = async (source: 'meta' | 'site') => {
+      const ex = filtroFormulariosExcluidos()
       const { count } = await supabase.from('leads').select('id', { count: 'exact', head: true })
-        .eq('source', source).gte('created_at', pFrom.toISOString()).lt('created_at', pTo.toISOString())
+        .eq('source', source).not(ex.coluna, 'in', ex.valores)
+        .gte('created_at', pFrom.toISOString()).lt('created_at', pTo.toISOString())
       return count ?? 0
     }
     countPrev('meta').then(c => { if (!cancel) setPrevLC(c) }).catch(() => {})

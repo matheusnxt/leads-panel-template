@@ -68,7 +68,7 @@ export default function FunnelView() {
   }, [qs, ready])
 
   const stage = (k: string): StageRow | undefined => funnel?.stages.find(s => s.key === k)
-  const configured = funnel?.configured ?? false
+  const leadsError = funnel?.leadsError ?? null
 
   const ROWS: { key: string; label: string; icon: React.ComponentType<{ size?: number }>; money?: boolean; get: () => StageRow | undefined }[] = [
     { key: 'leads', label: 'Leads', icon: Users, get: () => stage('leads') },
@@ -121,23 +121,15 @@ export default function FunnelView() {
               </tbody>
             </table>
 
-            {(() => {
-              const d = stage('leads')?.divergence ?? 0
-              if (!d) return null
-              const abs = int(Math.abs(d))
-              return (
-                <div className={styles.divergence}>
-                  <TriangleAlert size={14} />
-                  <span>
-                    Divergência de volume na etapa <strong>Leads</strong>: Tráfego + Orgânico está{' '}
-                    <strong>{abs} {d > 0 ? 'a menos' : 'a mais'}</strong> que o Total.{' '}
-                    {d > 0
-                      ? `A aba Leads tem ${abs} lead(s) a mais que os contatos do HubSpot neste período.`
-                      : `O HubSpot tem ${abs} contato(s) a mais que a aba Leads neste período.`}
-                  </span>
-                </div>
-              )
-            })()}
+            {leadsError && (
+              <div className={styles.divergence}>
+                <TriangleAlert size={14} />
+                <span>
+                  <strong>Leads, MQL e SQL indisponíveis.</strong> {leadsError}{' '}
+                  Vendas e Faturamento acima são reais.
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Funil trapezoidal (mesmo estilo da aba Meta Ads), a partir da tabela acima */}
@@ -171,14 +163,16 @@ export default function FunnelView() {
             </div>
           </div>
 
-          {!configured && (
-            <p className={styles.assumptions}>
-              <TriangleAlert size={13} /> <span><strong>Etapa Leads já ligada.</strong> O <strong>Total</strong> vem da aba Leads (Meta)
-              no período; <strong>Tráfego</strong> e <strong>Orgânico</strong> são a contagem direta de contatos no HubSpot no mesmo período (tag
-              <strong> Social Pago</strong> = tráfego, sem a tag = orgânico). <strong>MQL</strong>, <strong>SQL</strong>, <strong>Vendas</strong> e
-              <strong> Faturamento</strong> seguem aguardando os filtros oficiais do cliente.</span>
-            </p>
-          )}
+          <p className={styles.assumptions}>
+            <span>
+              <strong>Tráfego</strong> = Canal de Entrada é <em>Formulários Meta</em> ou <em>Google Ads</em>;{' '}
+              <strong>Orgânico</strong> = qualquer outro canal (incluindo em branco). Período aplicado por etapa:{' '}
+              <strong>Leads</strong> e <strong>MQL</strong> pela data de entrada em <em>Novo</em> (MQL exclui os
+              desqualificados por perfil, contato inválido, cliente ativo, duplicado ou paciente);{' '}
+              <strong>SQL</strong> pela data de entrada em <em>Qualificado</em>; <strong>Vendas</strong> e{' '}
+              <strong>Faturamento</strong> pela data de entrada em <em>Negócio Ganho (Closer)</em>.
+            </span>
+          </p>
         </>
       )}
     </div>

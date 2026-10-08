@@ -1,40 +1,56 @@
-import { getRange, inRange, type DateRangeKey } from './dateRange'
-import { dedupeLeads, CONVERSION_WINDOW_DAYS } from './dedupe'
-import type { Lead } from './supabase'
+import { getRange, type DateRangeKey } from './dateRange'
+import { CAMPANHAS_EXCLUIDAS_TOKEN } from './exclusions'
 
 // ---------------------------------------------------------------------------
 // Camada de dados do funil HubSpot (server-side; token nunca vai ao client).
-// O funil: Leads → MQL → SQL → Vendas → Faturamento, cada um em Total / Tráfego
-// / Orgânico. Cruza com Meta Ads em outra camada (custo por etapa + ROAS).
+// Funil: Leads → MQL → SQL → Vendas → Faturamento, cada linha em
+// Total / Tráfego / Orgânico, sempre dentro do período selecionado na aba.
+//
+// Leads, MQL e SQL saem do PAINEL DE LEADS (objeto `leads`).
+// Vendas e Faturamento saem de NEGÓCIOS (objeto `deals`).
 // ===========================================================================
-//  BLOCO DE CONFIGURAÇÃO  — AJUSTAR QUANDO O CLIENTE PASSAR OS FILTROS REAIS
+//  FILTROS — espelham os filtros avançados configurados no HubSpot
 // ===========================================================================
 
-// Enquanto for `false`, o funil NÃO consulta nada e devolve tudo ZERADO — sem
-// filtros e sem cálculos. Virar `true` quando os filtros oficiais forem definidos.
-export const FILTERS_CONFIGURED = false
+// Canal de Entrada que conta como TRÁFEGO PAGO. Orgânico = todo o resto,
+// inclusive registros com o campo vazio (igual ao "não é nenhum de" da UI).
+export const PAID_CANAIS = ['Formulários Meta', 'Google Ads']
 
-// Valores da propriedade `origem` (Canal de Entrada) considerados TRÁFEGO PAGO.
-// Orgânico = tudo que não é pago (calculado por subtração: total − tráfego).
-export const PAID_ORIGEM = ['Meta Ads', 'Google Ads', 'LinkedIn Ads', 'Formulários Meta']
+// Propriedades do Painel de Leads (objeto `leads`) desta conta.
+// Os rótulos dos estágios estão em inglês, mas são os do pipeline "Novo" e
+// "Qualificado" que aparecem traduzidos na interface.
+const LEAD_CANAL = 'canal_de_entrada'
+const LEAD_MOTIVO = 'motivo_da_perda' // rótulo na tela: "Motivo da Desqualificação"
+const LEAD_DATE_NOVO = 'hs_v2_date_entered_new_stage_id_1318266061'
+const LEAD_DATE_QUALIFICADO = 'hs_v2_date_entered_qualified_stage_id_233247981'
 
-// Etapas de CONTATO. `lifecycle` = valores de lifecyclestage que contam como
-// "alcançou a etapa" (aproximação cumulativa, pois a conta não tem histórico de
-// data por etapa). null = todos os contatos criados no período.
-// >>> PLACEHOLDER: o cliente vai estipular os filtros de MQL e SQL. <<<
-type ContactStage = { key: string; label: string; lifecycle: string[] | null }
-export const CONTACT_STAGES: ContactStage[] = [
-  { key: 'leads', label: 'Leads', lifecycle: null },
-  { key: 'mql', label: 'MQL', lifecycle: ['marketingqualifiedlead', 'salesqualifiedlead', 'opportunity', 'customer', 'evangelist'] },
-  { key: 'sql', label: 'SQL', lifecycle: ['salesqualifiedlead', 'opportunity', 'customer', 'evangelist'] },
+// MQL = lead do período que NÃO foi desqualificado por nenhum destes motivos.
+// ATENÇÃO: são os VALORES internos da propriedade, que diferem do rótulo
+// exibido na tela ("Fora de perfil ideal" é gravado como "Fora de perfil").
+export const MQL_MOTIVOS_EXCLUIDOS = [
+  'Fora de perfil',       // tela: "Fora de perfil ideal"
+  'Contato inválido',
+  'Já é cliente ativo',
+  'Lead Duplicado',
+  'Paciente',
 ]
 
-// Estágios de deal considerados VENDA (ganho). Closer: Negócio Ganho; Go Premium: Ganho.
-export const WON_DEAL_STAGES = ['1157066110', '1284036421']
+// Venda = negócio que ENTROU no estágio "Negócio Ganho (Closer)" no período.
+// Sem filtro de estágio atual: conta quem passou por ganho, mesmo que o
+// negócio tenha sido movido depois. O pipeline Go Premium não entra.
+const WON_STAGE_ID = '1157066110'
+const WON_DATE_PROP = `hs_v2_date_entered_${WON_STAGE_ID}`
+const DEAL_CANAL = 'canal_de_entrada'
+const DEAL_AMOUNT = 'amount'
 
 // ===========================================================================
 
 const BASE = 'https://api.hubapi.com'
+
+const SCOPE_ERROR =
+  'O token do HubSpot não tem permissão para ler o Painel de Leads. ' +
+  'No HubSpot: Configurações → Integrações → Apps privados → (app deste painel) ' +
+  '→ Escopos → marcar CRM › Leads › Read.'
 
 function token(): string {
   const t = process.env.HUBSPOT_TOKEN
@@ -42,16 +58,28 @@ function token(): string {
   return t
 }
 
-async function hs<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  })
-  const json = await res.json()
-  if (!res.ok) throw new Error(json?.message ?? `HubSpot ${res.status}`)
-  return json as T
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+// A Search API do HubSpot limita requisições por segundo; em vez de estourar,
+// espera e tenta de novo.
+async function hs<T>(path: string, body?: unknown): Promise<T> {
+  for (let tentativa = 0; ; tentativa++) {
+    const res = await fetch(`${BASE}${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+    })
+    const json = await res.json()
+
+    if (res.status === 429 && tentativa < 5) {
+      await sleep(2 ** tentativa * 250)
+      continue
+    }
+    if (res.status === 403 && path.includes('/leads')) throw new Error(SCOPE_ERROR)
+    if (!res.ok) throw new Error(json?.message ?? `HubSpot ${res.status}`)
+    return json as T
+  }
 }
 
 // Cache em memória (por instância) — as buscas são lentas.
@@ -65,7 +93,7 @@ async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
   return data
 }
 
-// ---- Período → filtros HubSpot ---------------------------------------------
+// ---- Período → filtro HubSpot ----------------------------------------------
 export type RangeInput = { dateKey: DateRangeKey; from?: string; to?: string }
 
 export function rangeFromParams(p: URLSearchParams): RangeInput {
@@ -77,7 +105,9 @@ export function rangeFromParams(p: URLSearchParams): RangeInput {
 }
 
 type Filter = { propertyName: string; operator: string; value?: string; highValue?: string; values?: string[] }
+type FilterGroup = { filters: Filter[] }
 
+// Toda linha do funil usa o mesmo período — só muda a propriedade de data.
 function periodFilter(range: RangeInput, prop: string): Filter | null {
   const r = getRange(range.dateKey, { from: range.from, to: range.to })
   if (!r.from && !r.to) return null
@@ -86,175 +116,157 @@ function periodFilter(range: RangeInput, prop: string): Filter | null {
   return { propertyName: prop, operator: 'BETWEEN', value: String(from), highValue: String(to) }
 }
 
-// ---- Contagem de contatos (Search API devolve `total`) ---------------------
-async function contactTotal(filters: Filter[]): Promise<number> {
-  const res = await hs<{ total: number }>('/crm/v3/objects/contacts/search', {
-    limit: 1,
-    filterGroups: [{ filters }],
-  })
-  return res.total ?? 0
-}
-
-// Valor de hs_analytics_source (Original Traffic Source) que representa a tag
-// "Social Pago" (Paid Social) do HubSpot → conta como TRÁFEGO.
-const SOCIAL_PAGO = 'PAID_SOCIAL'
-
 // ---- Tipos expostos --------------------------------------------------------
-// `divergence` só é preenchido na etapa Leads: total − (tráfego+orgânico), ou
-// seja, leads da aba Leads que não foram encontrados no HubSpot.
-export type StageRow = { key: string; label: string; total: number; trafego: number; organico: number; divergence?: number }
+export type StageRow = { key: string; label: string; total: number; trafego: number; organico: number }
 export type Money = { total: number; trafego: number; organico: number }
-export type Funnel = { configured: boolean; stages: StageRow[]; sales: StageRow; revenue: Money }
+export type Funnel = {
+  stages: StageRow[]
+  sales: StageRow
+  revenue: Money
+  // Preenchido quando o Painel de Leads está inacessível (falta de escopo):
+  // Vendas/Faturamento continuam reais, Leads/MQL/SQL vêm zerados.
+  leadsError: string | null
+}
 
 const zeroStage = (key: string, label: string): StageRow => ({ key, label, total: 0, trafego: 0, organico: 0 })
 
-// ---- Etapa Leads -----------------------------------------------------------
-// Total = leads da aba Leads (source='meta', deduplicados) no período.
-// Tráfego = contagem DIRETA de contatos com a tag Social Pago no HubSpot (período).
-// Orgânico = contagem de contatos SEM a tag no mesmo período (total − tráfego).
-// divergence = total − (tráfego+orgânico); pode ser "a mais" (HubSpot > aba Leads).
-
-// Busca os leads Meta direto no Supabase (server-side, service role).
-async function fetchMetaLeads(): Promise<Lead[]> {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!base || !key) throw new Error('Supabase não configurado (URL/service role)')
-  const headers = { apikey: key, Authorization: `Bearer ${key}` }
-  const out: Lead[] = []
-  let from = 0
-  for (;;) {
-    const res = await fetch(`${base}/rest/v1/leads?source=eq.meta&select=*&order=created_at.desc`, {
-      headers: { ...headers, Range: `${from}-${from + 999}` }, cache: 'no-store',
-    })
-    const rows = (await res.json()) as Lead[]
-    if (!Array.isArray(rows) || rows.length === 0) break
-    out.push(...rows)
-    if (rows.length < 1000) break
-    from += 1000
-  }
-  return out
+// ---- Leads excluídos do painel ---------------------------------------------
+// Os leads de formulário de curso são identificados pela campanha de origem e
+// removidos de todas as etapas do funil. Nada é alterado no HubSpot.
+async function idsExcluidos(): Promise<string[]> {
+  return cached('leads-excluidos', async () => {
+    const ids: string[] = []
+    let after: string | undefined
+    for (let guard = 0; guard < 20; guard++) {
+      const page = await hs<{ results: { id: string }[]; paging?: { next?: { after: string } } }>(
+        '/crm/v3/objects/leads/search',
+        {
+          limit: 100,
+          after,
+          filterGroups: [{
+            filters: [{
+              propertyName: 'hs_contact_analytics_source_data_2',
+              operator: 'CONTAINS_TOKEN',
+              value: `*${CAMPANHAS_EXCLUIDAS_TOKEN}*`,
+            }],
+          }],
+        },
+      )
+      for (const l of page.results ?? []) ids.push(l.id)
+      after = page.paging?.next?.after
+      if (!after) break
+    }
+    return ids
+  })
 }
 
-async function fetchLeadsRow(range: RangeInput): Promise<StageRow> {
-  // Total = leads da aba Leads (Meta), deduplicados, no período.
-  const merged = dedupeLeads(await fetchMetaLeads(), CONVERSION_WINDOW_DAYS)
-  const r = getRange(range.dateKey, { from: range.from, to: range.to })
-  const total = merged.filter(l => inRange(l.created_at, r)).length
+// ---- Contagens -------------------------------------------------------------
+async function leadsCount(filterGroups: FilterGroup[]): Promise<number> {
+  const res = await hs<{ total: number }>('/crm/v3/objects/leads/search', { limit: 1, filterGroups })
+  return res.total ?? 0
+}
 
-  // Tráfego/Orgânico = contagem DIRETA no HubSpot no mesmo período (por createdate),
-  // sem cruzar com a aba Leads. Tráfego = contatos com a tag Social Pago;
-  // Orgânico = contatos sem a tag (todos os demais no período).
-  const period = periodFilter(range, 'createdate')
-  const base: Filter[] = period ? [period] : []
-  const [contatos, trafego] = await Promise.all([
-    contactTotal(base),
-    contactTotal([...base, { propertyName: 'hs_analytics_source', operator: 'EQ', value: SOCIAL_PAGO }]),
-  ])
-  const organico = Math.max(contatos - trafego, 0)
-  return { key: 'leads', label: 'Leads', total, trafego, organico, divergence: total - (trafego + organico) }
+// Uma linha do painel de leads: total no período + recorte de tráfego pago.
+// Orgânico sai por subtração, garantindo Total = Tráfego + Orgânico.
+async function leadsRow(
+  key: string,
+  label: string,
+  groups: FilterGroup[],
+): Promise<StageRow> {
+  const paidFilter: Filter = { propertyName: LEAD_CANAL, operator: 'IN', values: PAID_CANAIS }
+  const paidGroups = groups.map(g => ({ filters: [...g.filters, paidFilter] }))
+  // Em série: a Search API do HubSpot é agressiva com rajadas de chamadas.
+  const total = await leadsCount(groups)
+  const trafego = await leadsCount(paidGroups)
+  return { key, label, total, trafego, organico: Math.max(total - trafego, 0) }
+}
+
+// ---- Etapas do painel de leads ---------------------------------------------
+async function fetchLeadStages(range: RangeInput): Promise<StageRow[]> {
+  const novo = periodFilter(range, LEAD_DATE_NOVO)
+  const qualificado = periodFilter(range, LEAD_DATE_QUALIFICADO)
+
+  // Todo lead tem id, então NOT_IN aqui não sofre o problema de valor vazio.
+  // Filtros dentro de um mesmo grupo são combinados com E, então a lista pode
+  // ser fatiada em vários NOT_IN (o HubSpot limita valores por filtro).
+  const excluidos = await idsExcluidos()
+  const semCurso: Filter[] = []
+  for (let i = 0; i < excluidos.length; i += 100) {
+    semCurso.push({ propertyName: 'hs_object_id', operator: 'NOT_IN', values: excluidos.slice(i, i + 100) })
+  }
+
+  const baseNovo: Filter[] = novo ? [novo, ...semCurso] : [...semCurso]
+
+  // MQL: "não é nenhum de" na UI do HubSpot inclui quem está sem motivo
+  // preenchido; na API, NOT_IN exclui vazios. Os dois grupos (OR) reproduzem
+  // o comportamento da tela.
+  const mqlGroups: FilterGroup[] = [
+    { filters: [...baseNovo, { propertyName: LEAD_MOTIVO, operator: 'NOT_IN', values: MQL_MOTIVOS_EXCLUIDOS }] },
+    { filters: [...baseNovo, { propertyName: LEAD_MOTIVO, operator: 'NOT_HAS_PROPERTY' }] },
+  ]
+
+  return [
+    await leadsRow('leads', 'Leads', [{ filters: baseNovo }]),
+    await leadsRow('mql', 'MQL', mqlGroups),
+    await leadsRow('sql', 'SQL', [{ filters: qualificado ? [qualificado, ...semCurso] : [...semCurso] }]),
+  ]
+}
+
+// ---- Vendas e Faturamento (negócios ganhos no período) ----------------------
+async function fetchWonDeals(range: RangeInput): Promise<{ sales: StageRow; revenue: Money }> {
+  const period = periodFilter(range, WON_DATE_PROP)
+  // Sem período (Todo o período) ainda é preciso limitar aos que entraram em
+  // ganho alguma vez — a propriedade de data existir já garante isso.
+  const filters: Filter[] = period
+    ? [period]
+    : [{ propertyName: WON_DATE_PROP, operator: 'HAS_PROPERTY' }]
+
+  const sales: StageRow = zeroStage('vendas', 'Vendas')
+  const revenue: Money = { total: 0, trafego: 0, organico: 0 }
+
+  let after: string | undefined
+  for (let guard = 0; guard < 100; guard++) {
+    const page = await hs<{
+      results: { properties: Record<string, string> }[]
+      paging?: { next?: { after: string } }
+    }>('/crm/v3/objects/deals/search', {
+      limit: 100,
+      after,
+      properties: [DEAL_AMOUNT, DEAL_CANAL],
+      filterGroups: [{ filters }],
+    })
+
+    for (const d of page.results ?? []) {
+      const amount = Number(d.properties[DEAL_AMOUNT]) || 0
+      const pago = PAID_CANAIS.includes(d.properties[DEAL_CANAL] ?? '')
+      sales.total++; revenue.total += amount
+      if (pago) { sales.trafego++; revenue.trafego += amount }
+      else { sales.organico++; revenue.organico += amount }
+    }
+
+    after = page.paging?.next?.after
+    if (!after) break
+  }
+
+  return { sales, revenue }
 }
 
 // ---- Funil completo --------------------------------------------------------
 export async function fetchFunnel(range: RangeInput): Promise<Funnel> {
   return cached(`funnel:${JSON.stringify(range)}`, async () => {
-    // Etapa Leads: já definida (aba Leads × HubSpot Social Pago) — sempre real.
-    const leadsRow = await fetchLeadsRow(range)
-
-    // MQL/SQL/Vendas/Faturamento seguem aguardando os filtros oficiais do cliente.
-    if (!FILTERS_CONFIGURED) {
-      return {
-        configured: false,
-        stages: [leadsRow, zeroStage('mql', 'MQL'), zeroStage('sql', 'SQL')],
-        sales: zeroStage('vendas', 'Vendas'),
-        revenue: { total: 0, trafego: 0, organico: 0 },
-      }
-    }
-
-    // (Caminho ligado quando os filtros de MQL/SQL/Vendas forem oficializados.)
-    const period = periodFilter(range, 'createdate')
-    const stages: StageRow[] = [leadsRow]
-    for (const st of CONTACT_STAGES.filter(s => s.key !== 'leads')) {
-      const filters: Filter[] = []
-      if (st.lifecycle) filters.push({ propertyName: 'lifecyclestage', operator: 'IN', values: st.lifecycle })
-      if (period) filters.push(period)
-      const [total, trafego] = await Promise.all([
-        contactTotal(filters),
-        contactTotal([...filters, { propertyName: 'origem', operator: 'IN', values: PAID_ORIGEM }]),
-      ])
-      stages.push({ key: st.key, label: st.label, total, trafego, organico: Math.max(total - trafego, 0) })
-    }
-    const deals = await fetchWonDeals(range)
-    return { configured: true, stages, sales: deals.sales, revenue: deals.revenue }
-  })
-}
-
-// ---- Deals ganhos: contagem + faturamento, divididos por origem do contato --
-type DealLite = { id: string; amount: number }
-
-async function fetchWonDeals(range: RangeInput): Promise<{ sales: StageRow; revenue: Money }> {
-  const period = periodFilter(range, 'closedate')
-  const filters: Filter[] = [{ propertyName: 'dealstage', operator: 'IN', values: WON_DEAL_STAGES }]
-  if (period) filters.push(period)
-
-  // 1) Pagina todos os deals ganhos do período (id + amount).
-  const deals: DealLite[] = []
-  let after: string | undefined
-  for (let guard = 0; guard < 100; guard++) {
-    const page = await hs<{ results: { id: string; properties: Record<string, string> }[]; paging?: { next?: { after: string } } }>(
-      '/crm/v3/objects/deals/search',
-      { limit: 100, after, properties: ['amount'], filterGroups: [{ filters }], sorts: [{ propertyName: 'closedate', direction: 'DESCENDING' }] },
+    // Vendas/Faturamento não dependem do Painel de Leads: se ele estiver
+    // inacessível, o resto da tabela ainda é exibido com dados reais.
+    const stagesResult = await fetchLeadStages(range).then(
+      stages => ({ stages, error: null as string | null }),
+      (e: Error) => ({ stages: null, error: e.message }),
     )
-    for (const d of page.results ?? []) deals.push({ id: d.id, amount: Number(d.properties.amount) || 0 })
-    after = page.paging?.next?.after
-    if (!after) break
-  }
+    const deals = await fetchWonDeals(range)
 
-  // 2) deal → contato associado (v4 batch), depois contato → origem (v3 batch).
-  const origemByDeal = await origemForDeals(deals.map(d => d.id))
-
-  const sales: StageRow = { key: 'vendas', label: 'Vendas', total: 0, trafego: 0, organico: 0 }
-  const revenue: Money = { total: 0, trafego: 0, organico: 0 }
-  for (const d of deals) {
-    const paid = PAID_ORIGEM.includes(origemByDeal[d.id] ?? '')
-    sales.total++; revenue.total += d.amount
-    if (paid) { sales.trafego++; revenue.trafego += d.amount }
-    else { sales.organico++; revenue.organico += d.amount }
-  }
-  return { sales, revenue }
-}
-
-// Mapeia dealId → origem do primeiro contato associado.
-async function origemForDeals(dealIds: string[]): Promise<Record<string, string>> {
-  if (dealIds.length === 0) return {}
-  const dealToContact: Record<string, string> = {}
-  for (let i = 0; i < dealIds.length; i += 100) {
-    const chunk = dealIds.slice(i, i + 100)
-    try {
-      const res = await hs<{ results: { from: { id: string }; to: { toObjectId: string }[] }[] }>(
-        '/crm/v4/associations/deals/contacts/batch/read',
-        { inputs: chunk.map(id => ({ id })) },
-      )
-      for (const r of res.results ?? []) {
-        const cid = r.to?.[0]?.toObjectId
-        if (cid) dealToContact[r.from.id] = String(cid)
-      }
-    } catch { /* deals sem contato ficam sem origem → contam como orgânico */ }
-  }
-
-  const contactIds = [...new Set(Object.values(dealToContact))]
-  const origemByContact: Record<string, string> = {}
-  for (let i = 0; i < contactIds.length; i += 100) {
-    const chunk = contactIds.slice(i, i + 100)
-    try {
-      const res = await hs<{ results: { id: string; properties: Record<string, string> }[] }>(
-        '/crm/v3/objects/contacts/batch/read',
-        { inputs: chunk.map(id => ({ id })), properties: ['origem'] },
-      )
-      for (const c of res.results ?? []) origemByContact[c.id] = c.properties.origem ?? ''
-    } catch { /* ignora */ }
-  }
-
-  const out: Record<string, string> = {}
-  for (const [deal, contact] of Object.entries(dealToContact)) out[deal] = origemByContact[contact] ?? ''
-  return out
+    return {
+      stages: stagesResult.stages ?? [zeroStage('leads', 'Leads'), zeroStage('mql', 'MQL'), zeroStage('sql', 'SQL')],
+      sales: deals.sales,
+      revenue: deals.revenue,
+      leadsError: stagesResult.error,
+    }
+  })
 }

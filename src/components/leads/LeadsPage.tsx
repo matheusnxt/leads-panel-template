@@ -10,6 +10,7 @@ import { useSession } from '@/contexts/SessionContext'
 import { getRange, inRange, type DateRangeKey } from '@/lib/dateRange'
 import { scoreLead } from '@/lib/leadScore'
 import { dedupeLeads, CONVERSION_WINDOW_DAYS } from '@/lib/dedupe'
+import { filtroFormulariosExcluidos } from '@/lib/exclusions'
 import { buildExport, download, uploadExport, type ExportFormat } from '@/lib/export'
 import { logActivity } from '@/lib/activity'
 import { logLeadActivity } from '@/lib/leadActivity'
@@ -54,6 +55,7 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
 
   // Busca todos os leads paginando (Supabase limita 1000 por requisição)
   const fetchLeads = async () => {
+    const EXCLUIDOS = filtroFormulariosExcluidos()
     const all: Lead[] = []
     let from = 0
     for (;;) {
@@ -61,6 +63,7 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
         .from('leads')
         .select('*')
         .eq('source', source)
+        .not(EXCLUIDOS.coluna, 'in', EXCLUIDOS.valores)
         .order('created_at', { ascending: false })
         .range(from, from + PAGE_SIZE - 1)
       if (error || !data || data.length === 0) break
