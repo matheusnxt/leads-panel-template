@@ -87,3 +87,16 @@
 
 .spin { animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg) } }
+
+/* Marca de qual base a planilha veio, só quando as duas origens convivem. */
+.origem {
+  flex: none;
+  padding: 2px 7px;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-radius: var(--raio-chip);
+}

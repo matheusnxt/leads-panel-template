@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Figtree, Inter } from "next/font/google";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import AppShell from "@/components/layout/AppShell";
 import { APP_NAME } from "@/lib/brand";
@@ -10,9 +10,16 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+// Títulos: Figtree é a gratuita mais próxima da Area Normal do manual da marca.
+const figtree = Figtree({
+  variable: "--font-figtree",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: `${APP_NAME} — Leads`,
-  description: "Painel de gestão de leads",
+  description: "Painel de gestão de leads e performance da HealthGo",
 };
 
 export const viewport: Viewport = {
@@ -30,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${inter.variable} ${figtree.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

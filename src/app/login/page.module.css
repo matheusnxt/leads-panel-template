@@ -23,15 +23,10 @@
   margin-bottom: 28px;
 }
 
-.logoIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--brand-blue);
-  border-radius: 9px;
-  color: #fff;
+.brandLogo {
+  width: 152px;
+  height: auto;
+  display: block;
 }
 
 .brandName {

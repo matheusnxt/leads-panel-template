@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Zap, Loader2 } from 'lucide-react'
+import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { usernameToEmail } from '@/lib/auth'
 import { APP_NAME } from '@/lib/brand'
@@ -94,8 +95,14 @@ export default function LoginPage() {
     <div className={styles.wrap}>
       <form className={styles.card} onSubmit={handleSubmit}>
         <div className={styles.brand}>
-          <div className={styles.logoIcon}><Zap size={20} strokeWidth={2.5} /></div>
-          <span className={styles.brandName}>{APP_NAME}</span>
+          <Image
+            src="/logo-healthgo-petroleo.png"
+            alt={APP_NAME}
+            width={1200}
+            height={235}
+            priority
+            className={styles.brandLogo}
+          />
         </div>
 
         <h1 className={styles.title}>Acessar o painel</h1>

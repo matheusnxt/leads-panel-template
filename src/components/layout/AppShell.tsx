@@ -15,10 +15,14 @@ export default function AppShell({ children }: Props) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  // A página de login fica fora do shell (sem sidebar/header e sem gate).
-  if (pathname === '/login') {
+  // Login e a bancada de UI (só em dev) ficam fora do shell, sem gate.
+  if (pathname === '/login' || pathname === '/ui-preview') {
     return <SessionProvider>{children}</SessionProvider>
   }
+
+  // Funis interativos (/f/<slug>) são páginas públicas: sem sessão nem shell.
+  if (pathname.startsWith('/f/')) return <>{children}</>
+
 
   return (
     <SessionProvider>

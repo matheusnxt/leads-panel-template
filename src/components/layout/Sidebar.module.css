@@ -36,15 +36,10 @@
   padding: 4px 8px 28px;
 }
 
-.logoIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--brand-blue);
-  border-radius: 8px;
-  color: #fff;
+.logoImg {
+  width: 132px;
+  height: auto;
+  display: block;
 }
 
 .logoText {

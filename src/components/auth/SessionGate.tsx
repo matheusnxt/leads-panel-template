@@ -20,12 +20,6 @@ export default function SessionGate({ children }: { children: React.ReactNode })
 
     const allowed = allowedPaths(profile.role, profile.permissions)
 
-    // Eventos (e subrotas) exigem a permissão 'eventos'
-    if (pathname.startsWith('/eventos')) {
-      const ok = profile.role === 'adm' || (profile.permissions ?? []).includes('eventos')
-      if (!ok) router.replace(allowed[0] ?? '/login')
-      return
-    }
 
     // /analytics é liberada conforme a permissão da origem (?source=)
     if (pathname === '/analytics') {

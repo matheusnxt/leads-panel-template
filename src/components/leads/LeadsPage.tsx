@@ -26,11 +26,20 @@ const SOURCE_LABEL: Record<LeadSource, string> = { meta: 'Meta Ads', planilha: '
 
 type Props = {
   source?: LeadSource
+  /**
+   * Origens realmente consultadas. Ausente = apenas `source`.
+   * A aba Planilhas usa ['planilha','upload'] para mostrar as duas bases
+   * juntas sem migrar nada no banco — cada lead mantém sua origem.
+   */
+  sources?: LeadSource[]
   emptyState?: React.ReactNode
   fillHeight?: boolean
 }
 
-export default function LeadsPage({ source = 'meta', emptyState, fillHeight = true }: Props) {
+export default function LeadsPage({ source = 'meta', sources, emptyState, fillHeight = true }: Props) {
+  // Memoizado por valor: um array novo a cada render reiniciaria a busca.
+  const origens = useMemo(() => sources ?? [source], [sources, source])
+  const chaveOrigens = origens.join(',')
   const { view, search } = useView()
   const { profile } = useSession()
   const isAdmin = profile?.role === 'adm'
@@ -62,7 +71,7 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
       const { data, error } = await supabase
         .from('leads')
         .select('*')
-        .eq('source', source)
+        .in('source', origens)
         .not(EXCLUIDOS.coluna, 'in', EXCLUIDOS.valores)
         .order('created_at', { ascending: false })
         .range(from, from + PAGE_SIZE - 1)
@@ -127,7 +136,7 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
       }
       const row = payload.new
       // INSERT/UPDATE de outra origem: ignora (ou remove, se mudou de origem)
-      if (row.source !== source) {
+      if (!origens.includes(row.source as LeadSource)) {
         setLeads(prev => prev.some(l => l.id === row.id) ? prev.filter(l => l.id !== row.id) : prev)
         return
       }
@@ -141,12 +150,12 @@ export default function LeadsPage({ source = 'meta', emptyState, fillHeight = tr
     }
 
     const channel = supabase
-      .channel(`leads-realtime-${source}`)
+      .channel(`leads-realtime-${chaveOrigens}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, applyChange)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source])
+  }, [chaveOrigens])
 
   // Agrupa leads iguais (mesma pessoa) numa única entrada. Reconversões
   // separadas por mais que a janela (30d) viram cards distintos (regra HealthGo).

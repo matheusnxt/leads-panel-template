@@ -10,13 +10,12 @@ import styles from './Header.module.css'
 const TITLES: Record<string, { title: string; badge: string }> = {
   '/': { title: 'Leads', badge: 'Meta Ads' },
   '/leads-site': { title: 'Leads Site', badge: 'Site' },
-  '/planilhas': { title: 'Leads Planilhas', badge: 'Planilhas' },
+  '/planilhas': { title: 'Planilhas', badge: 'Planilhas' },
   '/usuarios': { title: 'Usuários', badge: 'Acesso' },
   '/analytics': { title: 'Analytics', badge: 'Métricas' },
   '/ads': { title: 'Meta Ads', badge: 'Anúncios' },
   '/funil': { title: 'Funil', badge: 'HubSpot' },
   '/atividades': { title: 'Atividades', badge: 'Log' },
-  '/eventos': { title: 'Eventos', badge: 'Stand' },
 }
 
 export default function Header({ onMenu }: { onMenu?: () => void }) {
@@ -24,7 +23,7 @@ export default function Header({ onMenu }: { onMenu?: () => void }) {
   const { theme, toggleTheme } = useTheme()
   const [refreshing, setRefreshing] = useState(false)
   const pathname = usePathname()
-  const meta = pathname.startsWith('/eventos') ? TITLES['/eventos'] : (TITLES[pathname] ?? TITLES['/'])
+  const meta = TITLES[pathname] ?? TITLES['/']
   const showLeadControls = pathname === '/' || pathname === '/leads-site' || pathname === '/planilhas'
 
   return (

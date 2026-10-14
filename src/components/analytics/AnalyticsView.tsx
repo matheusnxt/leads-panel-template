@@ -89,7 +89,8 @@ export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' 
 
   const fields = useMemo(() => questionFields(leads), [leads])
   const statusData = useMemo(() => statusDistribution(leads), [leads])
-  const backHref = source === 'planilha' ? '/planilhas' : source === 'site' ? '/leads-site' : source === 'upload' ? '/leads-upload' : '/'
+  // 'upload' deixou de ter aba própria: virou uma origem dentro de Planilhas.
+  const backHref = source === 'planilha' || source === 'upload' ? '/planilhas' : source === 'site' ? '/leads-site' : '/'
 
   const metrics = useMemo(() => {
     const by = (s: string) => leads.filter(l => l.status === s).length

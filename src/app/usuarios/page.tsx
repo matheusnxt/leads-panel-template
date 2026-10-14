@@ -19,7 +19,7 @@ type AppUser = {
   created_at: string
 }
 
-const emptyForm = { name: '', username: '', email: '', password: '', role: 'usuario' as 'adm' | 'usuario', permissions: ['leads', 'site', 'planilhas', 'eventos'] as string[] }
+const emptyForm = { name: '', username: '', email: '', password: '', role: 'usuario' as 'adm' | 'usuario', permissions: ['leads', 'site', 'planilhas'] as string[] }
 
 export default function UsuariosPage() {
   const { profile, loading: sessLoading } = useSession()
@@ -190,7 +190,7 @@ function EditModal({ user, onClose, onSaved, authHeader }: {
 }) {
   const [name, setName] = useState(user.name ?? '')
   const [role, setRole] = useState<'adm' | 'usuario'>(user.role)
-  const [permissions, setPermissions] = useState<string[]>(user.permissions ?? ['leads', 'site', 'planilhas', 'eventos'])
+  const [permissions, setPermissions] = useState<string[]>(user.permissions ?? ['leads', 'site', 'planilhas'])
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
