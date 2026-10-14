@@ -94,6 +94,30 @@ export default function FunnelView() {
         <div className={styles.loading}><Loader2 className={styles.spin} size={30} /></div>
       ) : (
         <>
+          {/* Resumo em cartões: o número de cada etapa em destaque, com a
+              divisão pago/orgânico logo abaixo. A tabela segue adiante com o
+              detalhamento completo. */}
+          <div className={styles.resumo}>
+            {ROWS.map(row => {
+              const r = row.get()
+              const fmt = (v: number) => (row.money ? formatBRL(v) : int(v))
+              const Icon = row.icon
+              return (
+                <div key={row.key} className={styles.resumoCard}>
+                  <div className={styles.resumoTopo}>
+                    <span className={styles.resumoLabel}>{row.label}</span>
+                    <span className={styles.resumoIcone}><Icon size={15} /></span>
+                  </div>
+                  <strong className={styles.resumoValor}>{r ? fmt(r.total) : '—'}</strong>
+                  <div className={styles.resumoSplit}>
+                    <span><i className={styles.pontoPago} />{r ? fmt(r.trafego) : '—'}</span>
+                    <span><i className={styles.pontoOrg} />{r ? fmt(r.organico) : '—'}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
           <div className={styles.card}>
             <table className={styles.table}>
               <thead>

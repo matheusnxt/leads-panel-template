@@ -6,6 +6,8 @@ import type { Lead } from '@/lib/supabase'
 import LeadListView from '@/components/leads/LeadListView'
 import LeadKanbanView from '@/components/leads/LeadKanbanView'
 import ScoreGauge from '@/components/leads/ScoreGauge'
+import FunnelView from '@/components/funil/FunnelView'
+import MetaAdsView from '@/components/ads/MetaAdsView'
 import { scoreLead } from '@/lib/leadScore'
 import styles from './UiPreview.module.css'
 
@@ -78,11 +80,11 @@ const LEADS: Lead[] = [
   }),
 ]
 
-const SECOES = ['Score', 'Lista', 'Kanban'] as const
+const SECOES = ['Funil', 'Meta Ads', 'Score', 'Lista', 'Kanban'] as const
 type Secao = (typeof SECOES)[number]
 
 export default function UiPreview() {
-  const [secao, setSecao] = useState<Secao>('Lista')
+  const [secao, setSecao] = useState<Secao>('Funil')
   const [leads, setLeads] = useState(LEADS)
 
   const mudarStatus = (id: string, status: Lead['status']) =>
@@ -111,6 +113,9 @@ export default function UiPreview() {
             ))}
           </nav>
         </header>
+
+        {secao === 'Funil' && <FunnelView />}
+        {secao === 'Meta Ads' && <MetaAdsView />}
 
         {secao === 'Score' && (
           <section className={styles.bloco}>

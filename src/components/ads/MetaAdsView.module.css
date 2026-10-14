@@ -346,3 +346,87 @@
   border: 1.5px solid var(--muted); border-radius: 5px; color: #fff; flex-shrink: 0;
 }
 .colCheckOn { background: var(--ads-acc); border-color: var(--ads-acc); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Linguagem de painel — estilo dos dashboards de referência.
+
+   ATENÇÃO: estes cartões vivem num react-grid-layout cujo tamanho o usuário
+   salva (as linhas têm altura fixa, ex.: 76px, com overflow oculto). Então
+   tudo aqui é de CUSTO ZERO EM ALTURA: barra de acento absoluta, pastilha de
+   ícone do mesmo tamanho do ícone, cor, espaçamento de letra e sombra.
+   Nada de aumentar padding ou corpo de fonte — isso corta o número.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.kpi {
+  position: relative;
+  border-radius: var(--raio-cartao);
+  box-shadow: var(--sombra-1);
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+/* Barra de acento no topo — absoluta, não empurra o conteúdo. */
+.kpi::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--muted);
+  transition: background .18s ease;
+}
+.kpi:hover { border-color: var(--hover-border); box-shadow: var(--sombra-2); }
+.kpi:hover::before { background: var(--acento-marca); }
+.kpiHero::before { background: var(--acento-marca); }
+
+.kpiLabel { letter-spacing: .09em; color: var(--text-muted); }
+
+/* Pastilha do ícone: o fundo cresce por padding negativo visual (box-shadow),
+   sem alterar a caixa — assim a altura da linha não muda. */
+.kpiIcon {
+  color: var(--acento-marca);
+  opacity: 1;
+  border-radius: 7px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--acento-marca) 12%, transparent);
+  background: color-mix(in srgb, var(--acento-marca) 12%, transparent);
+}
+
+.kpiValue {
+  font-family: var(--font-figtree), var(--font-inter), system-ui, sans-serif;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpiDelta { font-variant-numeric: tabular-nums; }
+
+/* ── Cartões de seção (gráficos e tabelas) ── */
+.card {
+  position: relative;
+  border-radius: var(--raio-painel);
+  box-shadow: var(--sombra-1);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  border-radius: var(--raio-painel) var(--raio-painel) 0 0;
+  background: var(--acento-marca);
+  opacity: .9;
+}
+
+.cardTitle {
+  font-family: var(--font-figtree), var(--font-inter), system-ui, sans-serif;
+  letter-spacing: -0.015em;
+}
+.cardTitle > svg:first-child {
+  color: var(--acento-marca);
+  border-radius: 7px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--acento-marca) 12%, transparent);
+  background: color-mix(in srgb, var(--acento-marca) 12%, transparent);
+  margin-right: 4px;
+}
+
+.cardTotal { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+.thInner { letter-spacing: .09em; }
+.tdNum, .thNum, .table { font-variant-numeric: tabular-nums; }

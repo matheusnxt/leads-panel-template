@@ -22,6 +22,12 @@
   --hover-border: #C9D4DE; /* borda em hover */
   --foreground: var(--text);
 
+  /* Acentos de seção — barra no topo dos cartões do painel */
+  --acento-marca: #5CA0D9;
+  --acento-positivo: #2E7D52;
+  --acento-atencao: #B5801F;
+  --acento-negativo: #A33C3C;
+
   /* Raio — escala fechada (antes: 12 valores soltos) */
   --raio-chip: 6px;
   --raio-botao: 10px;
@@ -52,6 +58,9 @@ html[data-theme='dark'] {
   --text-faint: #6E8A99;
   --surface-glass: rgba(16, 44, 57, 0.85);
   --hover-border: #335163;
+  --acento-positivo: #4FB37C;
+  --acento-atencao: #D9A441;
+  --acento-negativo: #E07A7A;
   --sombra-1: 0 1px 3px rgba(0, 0, 0, 0.28);
   --sombra-2: 0 4px 14px rgba(0, 0, 0, 0.36);
   --sombra-3: 0 12px 34px rgba(0, 0, 0, 0.46);
