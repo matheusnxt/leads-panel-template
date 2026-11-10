@@ -19,7 +19,7 @@ type Props = {
   onDateKey: (k: DateRangeKey) => void
   custom: { from: string; to: string }
   onCustom: (c: { from: string; to: string }) => void
-  source: 'meta' | 'planilha' | 'site' | 'upload'
+  source: 'meta' | 'planilha' | 'site' | 'upload' | 'lives'
   listSize: 'sm' | 'md' | 'lg'
   onListSize: (s: 'sm' | 'md' | 'lg') => void
   showSize: boolean

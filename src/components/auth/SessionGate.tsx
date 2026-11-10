@@ -24,7 +24,7 @@ export default function SessionGate({ children }: { children: React.ReactNode })
     // /analytics é liberada conforme a permissão da origem (?source=)
     if (pathname === '/analytics') {
       const raw = new URLSearchParams(window.location.search).get('source')
-      const src = raw === 'planilha' ? 'planilhas' : raw === 'site' ? 'site' : 'leads'
+      const src = raw === 'planilha' ? 'planilhas' : raw === 'site' ? 'site' : raw === 'lives' ? 'lives' : 'leads'
       const ok = profile.role === 'adm' || (profile.permissions ?? []).includes(src)
       if (!ok) router.replace(allowed[0] ?? '/login')
       return

@@ -7,7 +7,7 @@ import AnalyticsView from '@/components/analytics/AnalyticsView'
 function AnalyticsInner() {
   const params = useSearchParams()
   const raw = params.get('source')
-  const source = raw === 'planilha' ? 'planilha' : raw === 'site' ? 'site' : raw === 'upload' ? 'upload' : 'meta'
+  const source = raw === 'planilha' ? 'planilha' : raw === 'site' ? 'site' : raw === 'upload' ? 'upload' : raw === 'lives' ? 'lives' : 'meta'
   return <AnalyticsView source={source} />
 }
 

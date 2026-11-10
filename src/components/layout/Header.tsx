@@ -11,6 +11,7 @@ const TITLES: Record<string, { title: string; badge: string }> = {
   '/': { title: 'Leads', badge: 'Meta Ads' },
   '/leads-site': { title: 'Leads Site', badge: 'Site' },
   '/planilhas': { title: 'Planilhas', badge: 'Planilhas' },
+  '/lives': { title: 'Lives', badge: 'Lives' },
   '/usuarios': { title: 'Usuários', badge: 'Acesso' },
   '/analytics': { title: 'Analytics', badge: 'Métricas' },
   '/ads': { title: 'Meta Ads', badge: 'Anúncios' },
@@ -24,7 +25,7 @@ export default function Header({ onMenu }: { onMenu?: () => void }) {
   const [refreshing, setRefreshing] = useState(false)
   const pathname = usePathname()
   const meta = TITLES[pathname] ?? TITLES['/']
-  const showLeadControls = pathname === '/' || pathname === '/leads-site' || pathname === '/planilhas'
+  const showLeadControls = pathname === '/' || pathname === '/leads-site' || pathname === '/planilhas' || pathname === '/lives'
 
   return (
     <header className={styles.header}>
