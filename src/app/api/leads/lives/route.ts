@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { formatPhoneBR } from '@/lib/phone'
+import { enviarEventoMeta } from '@/lib/metaCapi'
 
 // Recebe os cadastros da página de lives (publicada no Lovable) e grava em
 // leads com source = 'lives', que é o que a aba "Lives" do painel lê.
@@ -135,6 +136,27 @@ export async function POST(request: NextRequest) {
     // Não devolve a mensagem do banco ao navegador; fica só no log do servidor.
     console.error('[leads/lives] falha ao gravar', error.message)
     return responder({ error: 'Não foi possível registrar agora. Tente novamente.' }, 500)
+  }
+
+  // API de Conversões do Meta: o mesmo "Lead" que o Pixel dispara no navegador,
+  // com o mesmo event_id para o Meta contar uma vez só. Sem token, não faz nada.
+  const eventId = texto(corpo.metaEventId, 80)
+  if (eventId) {
+    const [primeiroNome, ...resto] = nome.split(' ')
+    await enviarEventoMeta({
+      nome: 'Lead',
+      eventId,
+      url: texto(corpo.pagina, 500) || origem,
+      email,
+      telefone: digitos.length <= 11 ? `55${digitos}` : digitos,
+      primeiroNome,
+      sobrenome: resto.join(' ') || undefined,
+      ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
+      userAgent: request.headers.get('user-agent'),
+      fbp: texto(corpo.fbp, 200) || null,
+      fbc: texto(corpo.fbc, 300) || null,
+      dados: { content_name: FORM_NAME },
+    })
   }
   return responder({ ok: true })
 }
