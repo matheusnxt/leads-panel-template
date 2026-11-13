@@ -21,8 +21,8 @@ import styles from './LeadsPage.module.css'
 
 const PAGE_SIZE = 1000
 
-export type LeadSource = 'meta' | 'planilha' | 'site' | 'upload' | 'lives'
-const SOURCE_LABEL: Record<LeadSource, string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site', upload: 'Upload', lives: 'Lives' }
+export type LeadSource = 'meta' | 'planilha' | 'site' | 'upload' | 'lives' | 'sbad'
+const SOURCE_LABEL: Record<LeadSource, string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site', upload: 'Upload', lives: 'Lives', sbad: 'SBAD' }
 
 type Props = {
   source?: LeadSource

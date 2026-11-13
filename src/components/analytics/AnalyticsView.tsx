@@ -22,11 +22,11 @@ import styles from './AnalyticsView.module.css'
 
 const PAGE_SIZE = 1000
 
-const SRC_LABEL: Record<'meta' | 'planilha' | 'site' | 'upload' | 'lives', string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site', upload: 'Upload', lives: 'Lives' }
+const SRC_LABEL: Record<'meta' | 'planilha' | 'site' | 'upload' | 'lives' | 'sbad', string> = { meta: 'Meta Ads', planilha: 'Planilhas', site: 'Site', upload: 'Upload', lives: 'Lives', sbad: 'SBAD' }
 
 const LS_RANGE = 'app-analytics-range'
 
-export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' | 'site' | 'upload' | 'lives' }) {
+export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' | 'site' | 'upload' | 'lives' | 'sbad' }) {
   const [allLeads, setAllLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -90,7 +90,7 @@ export default function AnalyticsView({ source }: { source: 'meta' | 'planilha' 
   const fields = useMemo(() => questionFields(leads), [leads])
   const statusData = useMemo(() => statusDistribution(leads), [leads])
   // 'upload' deixou de ter aba própria: virou uma origem dentro de Planilhas.
-  const backHref = source === 'planilha' || source === 'upload' ? '/planilhas' : source === 'site' ? '/leads-site' : source === 'lives' ? '/lives' : '/'
+  const backHref = source === 'planilha' || source === 'upload' ? '/planilhas' : source === 'site' ? '/leads-site' : source === 'lives' ? '/lives' : source === 'sbad' ? '/sbad' : '/'
 
   const metrics = useMemo(() => {
     const by = (s: string) => leads.filter(l => l.status === s).length

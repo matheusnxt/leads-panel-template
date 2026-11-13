@@ -1,6 +1,6 @@
 import type { Role } from './auth'
 
-export type TabKey = 'leads' | 'site' | 'planilhas' | 'upload' | 'lives'
+export type TabKey = 'leads' | 'site' | 'planilhas' | 'upload' | 'lives' | 'sbad'
 
 // Abas cujo acesso o admin pode liberar por usuário.
 export const TABS: { key: TabKey; path: string; label: string }[] = [
@@ -8,6 +8,7 @@ export const TABS: { key: TabKey; path: string; label: string }[] = [
   { key: 'site',      path: '/leads-site',   label: 'Leads Site' },
   { key: 'planilhas', path: '/planilhas',    label: 'Planilhas' },
   { key: 'lives',     path: '/lives',        label: 'Lives' },
+  { key: 'sbad',      path: '/sbad',         label: 'SBAD' },
 ]
 
 // Chaves de permissão válidas (allowlist usada também na API).
@@ -15,7 +16,7 @@ export const TAB_KEYS: TabKey[] = TABS.map(t => t.key)
 
 // Caminhos que um usuário pode acessar, considerando papel e permissões.
 export function allowedPaths(role: Role, permissions: string[] | null): string[] {
-  if (role === 'adm') return ['/', '/leads-site', '/planilhas', '/lives', '/ads', '/funil', '/usuarios', '/atividades']
+  if (role === 'adm') return ['/', '/leads-site', '/planilhas', '/lives', '/sbad', '/ads', '/funil', '/usuarios', '/atividades']
   const perms = permissions ?? []
   // 'upload' era uma aba própria; virou origem dentro de Planilhas, então a
   // permissão antiga continua valendo para não derrubar o acesso de ninguém.

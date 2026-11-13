@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Users, FileSpreadsheet, UserCog, LogOut, Globe, Megaphone, Filter, Radio } from 'lucide-react'
+import { Users, FileSpreadsheet, UserCog, LogOut, Globe, Megaphone, Filter, Radio, ClipboardList } from 'lucide-react'
 import { useSession } from '@/contexts/SessionContext'
 import { APP_NAME } from '@/lib/brand'
 import { allowedPaths } from '@/lib/tabs'
@@ -14,6 +14,7 @@ const navItems = [
   { icon: Globe, label: 'Leads Site', href: '/leads-site' },
   { icon: FileSpreadsheet, label: 'Planilhas', href: '/planilhas' },
   { icon: Radio, label: 'Lives', href: '/lives' },
+  { icon: ClipboardList, label: 'SBAD', href: '/sbad' },
   { icon: Megaphone, label: 'Meta Ads', href: '/ads' },
   { icon: Filter, label: 'Funil', href: '/funil' },
 ]
