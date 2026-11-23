@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import crypto from 'crypto'
 import { createClient } from '@supabase/supabase-js'
-import { parseFieldData, fetchLead, fetchFormName, toLeadRow, isTestLead, utmFrom } from '@/lib/meta'
+import { parseFieldData, fetchLead, fetchFormName, toLeadRow, isTestLead, utmFrom, resolvePageToken } from '@/lib/meta'
 
 // Confere a assinatura HMAC enviada pelo Meta (x-hub-signature-256)
 function validSignature(raw: string, header: string | null): boolean {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getSupabase()
-  const token = process.env.META_PAGE_ACCESS_TOKEN!
+  const token = await resolvePageToken(process.env.META_PAGE_ACCESS_TOKEN!, process.env.META_PAGE_ID ?? '')
   const formNameCache = new Map<string, string>()
 
   for (const entry of body.entry ?? []) {

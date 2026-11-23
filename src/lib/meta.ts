@@ -85,6 +85,22 @@ function normalizeInvestimento(rawKey: string, value: string): string {
   return value
 }
 
+// O Meta exige token DA PÁGINA para listar formulários e ler leads. Um token de
+// usuário do sistema (que não expira) serve para pedir o token da página; se o
+// token informado já for da página, a mesma chamada devolve o próprio token.
+// Qualquer falha cai no token original, sem quebrar quem já usa token de página.
+export async function resolvePageToken(token: string, pageId: string): Promise<string> {
+  if (!token || !pageId) return token
+  try {
+    const res = await fetch(`${GRAPH}/${pageId}?fields=access_token&access_token=${token}`)
+    if (res.ok) {
+      const data = await res.json()
+      if (typeof data.access_token === 'string' && data.access_token) return data.access_token
+    }
+  } catch { /* usa o token original */ }
+  return token
+}
+
 // Busca o nome de um formulário (com cache simples em memória por requisição)
 export async function fetchFormName(formId: string, token: string): Promise<string> {
   try {

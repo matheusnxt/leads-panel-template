@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { parseFieldData, fetchFormName, toLeadRow, isTestLead, utmFrom, UTM_FIELDS } from '@/lib/meta'
+import { parseFieldData, fetchFormName, toLeadRow, isTestLead, utmFrom, resolvePageToken, UTM_FIELDS } from '@/lib/meta'
 
 export const maxDuration = 60
 
@@ -20,19 +20,33 @@ function getSupabase() {
 // Uso: POST /api/backfill?token=...&form_id=...&max=200
 //   - form_id (opcional): importa só de um formulário. Sem ele, importa de todos os ativos.
 //   - max (opcional): teto de leads por formulário (default 500).
+//   - skip/take (opcionais): processa só um lote de formulários (default: todos). Útil quando a
+//     hospedagem limita as consultas externas por chamada; a resposta traz totalForms.
 export async function POST(request: NextRequest) {
+  try {
+    return await executar(request)
+  } catch (e) {
+    console.error('[backfill] falhou', e)
+    return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
+  }
+}
+
+async function executar(request: NextRequest) {
   const p = request.nextUrl.searchParams
   if (p.get('token') !== process.env.WEBHOOK_VERIFY_TOKEN) {
     return new Response('Forbidden', { status: 403 })
   }
 
-  const token = process.env.META_PAGE_ACCESS_TOKEN!
+  const token = await resolvePageToken(process.env.META_PAGE_ACCESS_TOKEN!, PAGE_ID)
   const onlyForm = p.get('form_id')
   const max = Number(p.get('max') ?? '500')
+  const skip = Math.max(0, Number(p.get('skip') ?? '0'))
+  const take = Math.max(1, Number(p.get('take') ?? '1000'))
   const supabase = getSupabase()
 
   // Lista os formulários a processar (pagina TODOS — novos formulários entram sozinhos)
   let formIds: string[] = []
+  let metaError: string | null = null
   if (onlyForm) {
     formIds = [onlyForm]
   } else {
@@ -40,12 +54,19 @@ export async function POST(request: NextRequest) {
       `${GRAPH}/${PAGE_ID}/leadgen_forms?fields=id,status&limit=100&access_token=${token}`
     while (url) {
       const res: Response = await fetch(url)
-      if (!res.ok) break
+      if (!res.ok) {
+        // Mostra o motivo do Meta (sem o token) em vez de falhar calado.
+        metaError = (await res.json().catch(() => null))?.error?.message ?? `HTTP ${res.status}`
+        break
+      }
       const data = await res.json()
       formIds.push(...(data.data ?? []).map((f: { id: string }) => f.id))
       url = data.paging?.next ?? null
     }
   }
+
+  const totalForms = formIds.length
+  formIds = formIds.slice(skip, skip + take)
 
   let imported = 0
   let skipped = 0
@@ -92,5 +113,5 @@ export async function POST(request: NextRequest) {
     perForm[form_name] = count
   }
 
-  return Response.json({ status: 'ok', imported, skipped, perForm })
+  return Response.json({ status: metaError ? 'erro_meta' : 'ok', imported, skipped, totalForms, perForm, ...(metaError ? { metaError } : {}) })
 }
