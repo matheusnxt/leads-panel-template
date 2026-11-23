@@ -18,6 +18,7 @@ import { useSession } from '@/contexts/SessionContext'
 import DateRangeDropdown from '@/components/leads/DateRangeDropdown'
 import CreativeModal from './CreativeModal'
 import styles from './MetaAdsView.module.css'
+import { authFetch } from '@/lib/authFetch'
 
 const LS_RANGE = 'app-ads-range'
 const LS_LAYOUT = 'app-ads-bento'
@@ -108,7 +109,7 @@ export default function MetaAdsView() {
     setCampaigns(null); setAdsets(null); setCreatives(null)
     setLeadsCenter(null); setLeadsSite(null)
 
-    const get = (path: string) => fetch(`/api/meta-ads/${path}${path.includes('?') ? '&' : '?'}${qs}`, { cache: 'no-store' }).then(async r => {
+    const get = (path: string) => authFetch(`/api/meta-ads/${path}${path.includes('?') ? '&' : '?'}${qs}`, { cache: 'no-store' }).then(async r => {
       const j = await r.json()
       if (!r.ok || j.error) throw new Error(j.error ?? `Erro ${r.status}`)
       return j
@@ -147,7 +148,7 @@ export default function MetaAdsView() {
     setPrev(null); setPrevLC(null); setPrevLS(null)
 
     const untilDay = isoDay(new Date(pTo.getTime() - 86400000))
-    fetch(`/api/meta-ads/overview?dateKey=custom&from=${isoDay(pFrom)}&to=${untilDay}`, { cache: 'no-store' })
+    authFetch(`/api/meta-ads/overview?dateKey=custom&from=${isoDay(pFrom)}&to=${untilDay}`, { cache: 'no-store' })
       .then(r => r.json()).then(d => { if (!cancel && !d.error) setPrev(d) }).catch(() => {})
     const countPrev = async (source: 'meta' | 'site') => {
       const ex = filtroFormulariosExcluidos()

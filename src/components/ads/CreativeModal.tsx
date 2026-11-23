@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { X, Loader2, ImageOff } from 'lucide-react'
 import styles from './MetaAdsView.module.css'
+import { authFetch } from '@/lib/authFetch'
 
 type Media =
   | { type: 'iframe'; src: string }
@@ -22,7 +23,7 @@ export default function CreativeModal({ adId, name, onClose }: {
     if (!adId) return
     setMedia(null); setError(null)
     let cancel = false
-    fetch(`/api/meta-ads/creative-media?adId=${adId}`)
+    authFetch(`/api/meta-ads/creative-media?adId=${adId}`)
       .then(r => r.json())
       .then(d => { if (!cancel) { if (d.error) setError(d.error); else setMedia(d) } })
       .catch(e => { if (!cancel) setError(e.message) })

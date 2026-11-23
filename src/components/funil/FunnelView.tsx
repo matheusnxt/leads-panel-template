@@ -7,6 +7,7 @@ import { type DateRangeKey } from '@/lib/dateRange'
 import { formatBRL } from '@/lib/currency'
 import DateRangeDropdown from '@/components/leads/DateRangeDropdown'
 import styles from './FunnelView.module.css'
+import { authFetch } from '@/lib/authFetch'
 
 const LS_RANGE = 'app-funil-range'
 const int = (n: number) => Math.round(n || 0).toLocaleString('pt-BR')
@@ -54,7 +55,7 @@ export default function FunnelView() {
     let cancel = false
     setLoading(true); setErr(null); setFunnel(null)
 
-    fetch(`/api/hubspot/funnel?${qs}`)
+    authFetch(`/api/hubspot/funnel?${qs}`)
       .then(async r => {
         const j = await r.json()
         if (!r.ok || j.error) throw new Error(j.error ?? `Erro ${r.status}`)
