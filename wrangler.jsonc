@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "healthgo-panel",
-  "main": ".open-next/worker.js",
+  "main": "worker.mjs",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -11,5 +11,9 @@
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "healthgo-panel" }
   ],
+  "kv_namespaces": [
+    { "binding": "SYNC_STATE", "id": "98c4d1fc851649bea457a7549d23ef0a" }
+  ],
+  "triggers": { "crons": ["* * * * *"] },
   "observability": { "enabled": true }
 }

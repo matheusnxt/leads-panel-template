@@ -20,6 +20,10 @@ function getSupabase() {
 // Uso: POST /api/backfill?token=...&form_id=...&max=200
 //   - form_id (opcional): importa só de um formulário. Sem ele, importa de todos os ativos.
 //   - max (opcional): teto de leads por formulário (default 500).
+//   - list=1 (opcional): só devolve os formulários com a contagem de leads de cada um
+//     (o agendamento compara com a contagem anterior e só consulta os que mudaram).
+//   - since (opcional, unix em segundos): só leads criados depois disso (usado pelo agendamento).
+//   - only_active=1 (opcional): ignora formulários que não estão ATIVOS.
 //   - skip/take (opcionais): processa só um lote de formulários (default: todos). Útil quando a
 //     hospedagem limita as consultas externas por chamada; a resposta traz totalForms.
 export async function POST(request: NextRequest) {
@@ -41,17 +45,20 @@ async function executar(request: NextRequest) {
   const onlyForm = p.get('form_id')
   const max = Number(p.get('max') ?? '500')
   const skip = Math.max(0, Number(p.get('skip') ?? '0'))
+  const since = Math.max(0, Number(p.get('since') ?? '0'))
+  const onlyActive = p.get('only_active') === '1'
   const take = Math.max(1, Number(p.get('take') ?? '1000'))
   const supabase = getSupabase()
 
   // Lista os formulários a processar (pagina TODOS — novos formulários entram sozinhos)
   let formIds: string[] = []
+  const formsInfo: { id: string; status?: string; leads_count?: number }[] = []
   let metaError: string | null = null
   if (onlyForm) {
     formIds = [onlyForm]
   } else {
     let url: string | null =
-      `${GRAPH}/${PAGE_ID}/leadgen_forms?fields=id,status&limit=100&access_token=${token}`
+      `${GRAPH}/${PAGE_ID}/leadgen_forms?fields=id,status,leads_count&limit=100&access_token=${token}`
     while (url) {
       const res: Response = await fetch(url)
       if (!res.ok) {
@@ -60,9 +67,17 @@ async function executar(request: NextRequest) {
         break
       }
       const data = await res.json()
-      formIds.push(...(data.data ?? []).map((f: { id: string }) => f.id))
+      for (const f of (data.data ?? []) as { id: string; status?: string; leads_count?: number }[]) {
+        if (onlyActive && f.status !== 'ACTIVE') continue
+        formIds.push(f.id)
+        formsInfo.push({ id: f.id, status: f.status, leads_count: f.leads_count })
+      }
       url = data.paging?.next ?? null
     }
+  }
+
+  if (p.get('list') === '1') {
+    return Response.json({ status: metaError ? 'erro_meta' : 'ok', forms: formsInfo, ...(metaError ? { metaError } : {}) })
   }
 
   const totalForms = formIds.length
@@ -73,10 +88,12 @@ async function executar(request: NextRequest) {
   const perForm: Record<string, number> = {}
 
   for (const formId of formIds) {
-    const form_name = await fetchFormName(formId, token)
+    let form_name: string | null = null
     let count = 0
     let url: string | null =
-      `${GRAPH}/${formId}/leads?fields=${UTM_FIELDS}&limit=100&access_token=${token}`
+      `${GRAPH}/${formId}/leads?fields=${UTM_FIELDS}&limit=100&access_token=${token}${
+        since ? `&filtering=${encodeURIComponent(JSON.stringify([{ field: 'time_created', operator: 'GREATER_THAN', value: since }]))}` : ''
+      }`
 
     while (url && count < max) {
       const res: Response = await fetch(url)
@@ -84,11 +101,12 @@ async function executar(request: NextRequest) {
       const page = await res.json()
 
       const rows = []
+      if ((page.data ?? []).length > 0) form_name ??= await fetchFormName(formId, token)
       for (const lead of page.data ?? []) {
         if (isTestLead(lead.field_data)) { count++; continue }
         const parsed = parseFieldData(lead.field_data)
         rows.push({
-          ...toLeadRow(parsed, form_name, lead.created_time, utmFrom(lead)),
+          ...toLeadRow(parsed, form_name ?? `Formulário ${formId}`, lead.created_time, utmFrom(lead)),
           meta_lead_id: lead.id,
         })
         count++
@@ -97,20 +115,22 @@ async function executar(request: NextRequest) {
 
       if (rows.length > 0) {
         // onConflict em meta_lead_id evita duplicar em re-execuções
-        const { error, count: inserted } = await supabase
+        const { data: gravados, error } = await supabase
           .from('leads')
-          .upsert(rows, { onConflict: 'meta_lead_id', ignoreDuplicates: true, count: 'exact' })
+          .upsert(rows, { onConflict: 'meta_lead_id', ignoreDuplicates: true })
+          .select('id')
         if (error) {
           return Response.json({ error: error.message, hint: 'A coluna meta_lead_id existe?' }, { status: 500 })
         }
-        imported += inserted ?? 0
-        skipped += rows.length - (inserted ?? 0)
+        const novos = gravados?.length ?? 0
+        imported += novos
+        skipped += rows.length - novos
       }
 
       url = count < max ? (page.paging?.next ?? null) : null
     }
 
-    perForm[form_name] = count
+    if (count > 0 && form_name) perForm[form_name] = count
   }
 
   return Response.json({ status: metaError ? 'erro_meta' : 'ok', imported, skipped, totalForms, perForm, ...(metaError ? { metaError } : {}) })

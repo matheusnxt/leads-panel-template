@@ -10,7 +10,10 @@ export const maxDuration = 60
 // lemos `hs_calculated_form_submissions` (formato `guid::timestamp;...`) e
 // filtramos pelo GUID do form do site. Idempotente via meta_lead_id.
 //
-// Uso: POST /api/hubspot/site-sync?token=<WEBHOOK_VERIFY_TOKEN>&max=1000
+// Uso: POST /api/hubspot/site-sync?token=<WEBHOOK_VERIFY_TOKEN>&max=1000&enrich=5000
+//   - enrich (opcional): teto de leads já existentes que podem ter custom_questions preenchido
+//     por execução. O agendamento usa um valor baixo: o plano grátis da Cloudflare limita 50
+//     consultas externas por chamada, e cada enriquecimento é uma consulta.
 // Protegido pelo mesmo token do webhook (para o pg_cron chamar).
 
 const HS = 'https://api.hubapi.com'
@@ -96,6 +99,7 @@ async function run(request: NextRequest) {
   if (!token) return Response.json({ error: 'HUBSPOT_TOKEN não configurado' }, { status: 500 })
 
   const max = Math.min(Number(request.nextUrl.searchParams.get('max') ?? 1000), 5000)
+  const enrichMax = Math.max(0, Number(request.nextUrl.searchParams.get('enrich') ?? 5000))
 
   const supabase = getSupabase()
   let scanned = 0
@@ -149,7 +153,7 @@ async function run(request: NextRequest) {
 
     // Preenche custom_questions em leads já existentes cujo valor está null
     // (backfill do lead score, sem sobrescrever status nem respostas existentes).
-    for (const r of rows) {
+    for (const r of rows.slice(0, enrichMax)) {
       if (!r.custom_questions) continue
       const { data: upd } = await supabase
         .from('leads')
