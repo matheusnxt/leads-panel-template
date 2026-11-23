@@ -93,3 +93,22 @@ Rodam com a `service_role` via env (`SUPABASE_URL` + `SUPABASE_KEY`):
 ## Personalização de marca
 - Nome: `NEXT_PUBLIC_APP_NAME`.
 - Cores: variáveis `--brand-*` em [`src/app/globals.css`](src/app/globals.css).
+
+---
+
+## Hospedagem: Cloudflare Workers
+
+O painel roda como Worker da Cloudflare (via OpenNext), no endereço
+`https://healthgo-panel.nxt-super-app.workers.dev`. A Vercel foi abandonada depois que a
+conta grátis foi pausada por excesso de processamento.
+
+- **Deploy automático:** todo push no branch `main` dispara o build na Cloudflare
+  (Workers Builds: `npx opennextjs-cloudflare build` e `npx opennextjs-cloudflare deploy`).
+  As variáveis `NEXT_PUBLIC_*` ficam em *Build variables* do Worker; as chaves secretas ficam em
+  *Variables and Secrets*.
+- **Tarefa agendada (a cada minuto):** `worker.mjs` busca os leads novos do Meta Ads e do
+  formulário do site (HubSpot). O Meta usa o KV `SYNC_STATE` para só consultar os formulários
+  cuja contagem de leads mudou; há uma varredura completa a cada hora.
+- **Deploy manual** (se precisar): `npm run deploy` na máquina com o `wrangler` logado.
+- **Limites do plano grátis:** 50 consultas externas por execução, 100 mil pedidos por dia.
+  Por isso `/api/backfill` aceita `skip`/`take` e `/api/hubspot/site-sync` aceita `enrich`.
